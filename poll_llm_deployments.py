@@ -87,7 +87,6 @@ class LLMLatencyPoller:
                  test_prompt: str = "Hi",
                  max_tokens: int = 1,
                  timeout: float = 10.0,
-                 streaming: bool = True,
                  max_concurrent_tests: int = 1):
         """
         Initialize the poller with API keys and configuration
@@ -99,7 +98,6 @@ class LLMLatencyPoller:
             test_prompt: Simple prompt for testing (default: "Hi")
             max_tokens: Max tokens for response (default: 1 for minimal cost)
             timeout: Timeout for each request in seconds
-            streaming: If True enable streaming to measure TTFT
             max_concurrent_tests: Maximum number of concurrent deployment tests (default: 3)
         """
         self.openai_api_key = openai_api_key
@@ -108,7 +106,6 @@ class LLMLatencyPoller:
         self.test_prompt = test_prompt
         self.max_tokens = max_tokens
         self.timeout = timeout
-        self.streaming = streaming
         self.results_history: List[LatencyResult] = []
         self.semaphore = asyncio.Semaphore(max_concurrent_tests)
         
@@ -124,7 +121,7 @@ class LLMLatencyPoller:
             max_tokens=self.max_tokens,
             timeout=self.timeout,
             max_retries=0,  # No retries for accurate timing
-            streaming=self.streaming  # Configurable streaming
+            streaming=True  # Always use streaming
         )
         
     def _create_azure_client(self, endpoint: str) -> AzureChatOpenAI:
@@ -138,13 +135,13 @@ class LLMLatencyPoller:
             max_tokens=self.max_tokens,
             timeout=self.timeout,
             max_retries=0,
-            streaming=self.streaming  # Configurable streaming
+            streaming=True  # Always use streaming
         )
         
     async def _test_deployment(self, 
                               deployment_config: DeploymentConfig) -> LatencyResult:
         """
-        Test a single deployment and measure latency with streaming
+        Test a single deployment and measure latency
         
         Args:
             deployment_config: Configuration for the deployment to test
@@ -168,31 +165,18 @@ class LLMLatencyPoller:
                 # Create a simple message
                 message = HumanMessage(content=self.test_prompt)
                 
-                if self.streaming:
-                    # Begin timing just before sending the request
-                    start_time = time.perf_counter()
+                # Begin timing just before sending the request
+                start_time = time.perf_counter()
+                
+                # Stream the response to measure TTFT
+                async for chunk in client.astream([message]):
+                    if first_token_time is None:
+                        first_token_time = time.perf_counter()
                     
-                    # Stream the response to measure TTFT
-                    async for chunk in client.astream([message]):
-                        if first_token_time is None:
-                            first_token_time = time.perf_counter()
-                        
-                        # Count tokens and build response
-                        if hasattr(chunk, 'content') and chunk.content:
-                            tokens_received += 1
-                            full_response += chunk.content
-                else:
-                    # Non-streaming request
-                    start_time = time.perf_counter()
-                    response = await asyncio.get_event_loop().run_in_executor(
-                        None, 
-                        client.invoke,
-                        [message]
-                    )
-                    # Extract content if present
-                    full_response = getattr(response, 'content', str(response))
-                    tokens_received = len(full_response.split())
-                    first_token_time = start_time
+                    # Count tokens and build response
+                    if hasattr(chunk, 'content') and chunk.content:
+                        tokens_received += 1
+                        full_response += chunk.content
                 
                 # Calculate all timing metrics
                 end_time = time.perf_counter()
