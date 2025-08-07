@@ -1,0 +1,646 @@
+{
+    "confirmed_identity": {
+        "type": "boolean",
+        "description": "Has the customer definitively confirmed that they are {customer_name}?"
+    },
+    "has_time_to_chat": {
+        "type": "boolean",
+        "description": "If the agent asked the customer if they have time to chat, mark this field as True if the customer mentioned that they are willing to chat. If the customer has explicitly stated that they do not have time to chat, mark this field as False. For all other ambiguous responses, don't populate this field."
+    },
+    "confirmed_email": {
+        "type": "boolean",
+        "description": "Has the customer confirmed that their email address is {customer_email}? Only output False if the customer indicates that the agent has the incorrect email. If the customer is correcting you and providing a new email, then mark this field as False."
+    },
+    "actual_email": {
+        "type": "str",
+        "description": "If the customer ({customer_full_name}) has been asked to provide their email address, what email did they provide. If the customer uses the phrase 'first name' or 'last name' in their email, ensure that you use their actual first or last name. If the customer explicitly mentions that they don't have an email or don't know, then mark this field as 'skip'."
+    },
+    "confirmed_actual_email": {
+        "type": "boolean",
+        "description": "Did the customer confirm that {actual_email} is correct? Output False if they indicate it's incorrect. Do not populate this field until the agent has explicitly asked the customer whether {actual_email} is correct."
+    },
+    "confirmed_address": {
+        "type": "boolean",
+        "description": "Has the customer confirmed that their address is {customer_address}? Only output False if the customer indicates that the agent has the incorrect address."
+    },
+    "cosigner_confirmed_address": {
+        "type": "boolean",
+        "description": "Has the customer confirmed that the cosigner's address is {cosigner_address}? Only output False if the customer indicates that the agent has the incorrect address."
+    },
+    "confirmed_preferred_phone_number": {
+        "type": "boolean",
+        "description": "Output True if the customer confirmed that {customer_phone} is their preferred phone number? Output False if the customer indicates that the agent has the incorrect number. If the customer mentions that they have a new number, mark this field as False."
+    },
+    "new_preferred_phone_number": {
+        "type": "str",
+        "description": "If not {customer_phone}, what new preferred phone number did the customer provide?"
+    },
+    "confirmed_new_preferred_phone_number": {
+        "type": "boolean",
+        "description": "If the customer chose to provide a new preferred phone number, did they confirm the agent captured it correctly after the agent read it back out to them?  The Agent string before the customer confirms it should include the words \"new preferred\" or \"updated\"."
+    },
+    "has_alternate_number": {
+        "type": "boolean",
+        "description": "Has the customer confirmed that they have an alternate phone number that they would like to add to their account? If the customer is explicitly stating they do not want to add an alternate phone number, mark this field as False."
+    },
+    "alternate_phone_number": {
+        "type": "str",
+        "description": "If the customer indicates they would like to add an alternate phone number to their account, what is the customer's alternate phone number?"
+    },
+    "confirmed_alternate_phone_number": {
+        "type": "boolean",
+        "description": "If the customer chose to provide an alternate phone number, did they confirm the agent captured it correctly after the agent read it back out to them?"
+    },
+    "use_number_for_loan": {
+        "type": "boolean",
+        "description": "Did the customer give the agent permission to use their new alternate phone number for loan administration?"
+    },
+    "confirmed_vehicle": {
+        "type": "boolean",
+        "description": "Did the customer explicitly confirm to the agent that they have a {customer_vehicle}?"
+    },
+    "actual_vehicle": {
+        "type": "str",
+        "description": "If not a {customer_vehicle}, what vehicle does the customer have?"
+    },
+    "confirmed_dealership": {
+        "type": "boolean",
+        "description": "Did the customer purchase their vehicle from {dealer_name}?"
+    },
+    "confirmed_down_payment": {
+        "type": "boolean",
+        "description": "Did the customer explicitly confirm to the agent that their down payment was ${customer_down_payment}? If they provide a different value, then mark this field as False."
+    },
+    "actual_down_payment_amount": {
+        "type": "float",
+        "description": "What did the customer state as their down payment amount? Only mark this field when you get an actual or approximate value from the customer and not something vague like 'yes' or 'okay'."
+    },
+    "money_owed_to_dealer": {
+        "type": "boolean",
+        "description": "Is the customer indicating that they still owe the dealer more money?"
+    },
+    "money_owed_to_dealer_amount": {
+        "type": "float",
+        "description": "How much additional money does the customer owe the dealer? If the customer does not owe any additional money, mark this field as 0."
+    },
+    "money_owed_to_dealer_schedule": {
+        "type": "str",
+        "description": "When does the customer indicate they will be paying the additional money owed to the dealer?"
+    },
+    "was_paid_in_full": {
+        "type": "boolean",
+        "description": "Has the down payment been paid in full? Output True if paid completely, False if partially paid."
+    },
+    "when_pay_remaining_amount": {
+        "type": "str",
+        "description": "When will the customer pay the remaining down payment amount?"
+    },
+    "amount_to_pay": {
+        "type": "float",
+        "description": "How much of the down payment remains to be paid? Extract only the number."
+    },
+    "down_payment_method": {
+        "type": "str",
+        "description": "What payment method will be used for the down payment (e.g., cash, credit card, check)?"
+    },
+    "engine_issues": {
+        "type": "boolean",
+        "description": "Mark this field as True if the customer mentions that they are experiencing transmission or engine issues. If the customer mentions that their car is fine, declines having any issues or mentions that are yet to experience any issues, mark this field as False."
+    },
+    "has_mechanical_issues": {
+        "type": "boolean",
+        "description": "Mark this field as True if the customer reports any mechanical issues with their vehicle. If the customer states there are no mechanical issues, mark it as False."
+    },
+    "dealer_aware_problems": {
+        "type": "boolean",
+        "description": "Has the customer already told the dealer about their engine or transmission problems?"
+    },
+    "dealer_helping": {
+        "type": "boolean",
+        "description": "Is the dealer helping the customer address the problems with their vehicle?"
+    },
+    "has_loaner": {
+        "type": "boolean",
+        "description": "Did the customer mention that they currently have a loaner vehicle while their vehicle is getting repaired? If the customer indicates that they do not have a loaner vehicle, mark this field as False."
+    },
+    "vehicle_ready_for_pickup": {
+        "type": "str",
+        "description": "When did the customer say their vehicle will be ready for pick up?"
+    },
+    "purchased_for_someone_else": {
+        "type": "boolean",
+        "description": "Did the customer purchase or refinance the vehicle for someone other than themselves?"
+    },
+    "purchased_for_name": {
+        "type": "str",
+        "description": "Did the customer provide a name for the person the vehicle was purchased or refinanced for?"
+    },
+    "purchased_for_address": {
+        "type": "str",
+        "description": "Did the customer provide an address for the person the vehicle was purchased or refinanced for, and what was it?"
+    },
+    "purchased_for_relationship": {
+        "type": "str",
+        "description": "Did the customer provide their relationship to the person the vehicle was purchased or refinanced for, and what was it?"
+    },
+    "purchased_for_phone_number": {
+        "type": "str",
+        "description": "Did the customer provide a phone number for the person the vehicle was purchased or refinanced for, and what was it?"
+    },
+    "dealer_aware_purchase": {
+        "type": "boolean",
+        "description": "Did the customer indicate that the dealer is aware that the customer purchased or refinanced the vehicle for someone not in the customer's household?"
+    },
+    "bank_account_number": {
+        "type": "str",
+        "description": "The customer's bank account number."
+    },
+    "confirmed_bank_account_number": {
+        "type": "boolean",
+        "description": "Did the customer confirm the agent captured the right bank account number after the agent read the number back out to them? Only output False if the customer indicates that the agent has the incorrect number."
+    },
+    "bank_routing_number": {
+        "type": "str",
+        "description": "The customer's bank routing number."
+    },
+    "confirmed_bank_routing_number": {
+        "type": "boolean",
+        "description": "Did the customer confirm the agent captured the right bank routing number after the agent read the number back out to them? Only output False if the customer indicates that the agent has the incorrect number."
+    },
+    "bank_account_type": {
+        "type": "str",
+        "description": "The type of the customer's bank account, \"checking\" or \"savings\"."
+    },
+    "bank_name": {
+        "type": "str",
+        "description": "The name of the customer's bank."
+    },
+    "accepted_payment_disclosure": {
+        "type": "boolean",
+        "description": "When the agent reads out the automatic payments setup disclaimer beginning with \"Just to confirm, you'll be paying your monthly payment\", if the customer accepts this disclaimer, mark this field as True. If the customer denies mark it as False."
+    },
+    "debit_card_number": {
+        "type": "str",
+        "description": "The customer's debit card number."
+    },
+    "confirmed_debit_card_number": {
+        "type": "boolean",
+        "description": "Did the customer confirm the agent captured the right debit card number after the agent read the number back out to them? Only output False if the customer indicates that the agent has the incorrect number."
+    },
+    "debit_card_expiration": {
+        "type": "str",
+        "description": "The expiration date of the customer's debit card in MMYYYY. For example, \"oh nine three one\" would be \"092031\". \"july twenty nine\" would be \"072029\"."
+    },
+    "debit_card_cvv": {
+        "type": "str",
+        "description": "The CVV of the customer's debit card."
+    },
+    "automatic_payments": {
+        "type": "boolean",
+        "description": "Based on the bottommost customer response, does the customer want to set up automatic payments over the phone? If the customer mentions they don't have their bank or debit information at the moment, this should be False. If the customer is simply indicating that they don't want to set up automatic payments for a particular amount, this field should be set to True."
+    },
+    "bank_or_debit": {
+        "type": "str",
+        "description": "Set this field to \"bank\" only if the customer explicitly states they want to use a new bank account for the payment, and \"debit\" only if the customer explicitly states they want to use a new debit card for the payment."
+    },
+    "desired_monthly_payment_amount": {
+        "type": "float",
+        "description": "How much did the customer explicitly indicate they would like to pay each month?"
+    },
+    "use_myaccount": {
+        "type": "boolean",
+        "description": "Does the customer want to be set up with the MyAccount or PayOnline website?"
+    },
+    "customer_wants_supervisor": {
+        "type": "boolean",
+        "description": "Is the customer indicating that they want to speak with a supervisor, rep, real person, customer service, operator, human, or live agent, for example by saying \"customer service\", \"operator\", \"agent\", \"representative\", etc?"
+    },
+    "customer_frustrated": {
+        "type": "boolean",
+        "description": "Is the customer showing multiple, consistent signs of frustration directed towards the agent? If the customer is simply reporting issues with their vehicle, this should be False. If the customer is complaining that the dealer is not helping with their vehicle issues, this should be False. If the customer is simply asking questions about the verification process, or about why you need to obtain this information, this should be False. If the customer is stating they don't want to set up automatic payments, this should be False."
+    },
+    "denies_loan": {
+        "type": "boolean",
+        "description": "Is the customer denying having an auto loan, for example by saying 'I don't have this loan'? If you aren't certain, this should be False."
+    },
+    "does_not_have_car": {
+        "type": "boolean",
+        "description": "Is the customer stating they don't have a car, or have not received the car yet? If they are simply responding negatively to owning a specific type of car, this is False. If you aren't certain, this should be False."
+    },
+    "does_not_speak_english": {
+        "type": "boolean",
+        "description": "Is the customer indicating that they are unable to communicate in English, for example by saying \"no speak english\" or \"speak spanish\"? If the customer is instead confirming their ability to speak English, or requesting the agent to communicate in English, for example by saying \"english please\", \"i can only speak english\", \"i just speak english\", etc. then this should be False."
+    },
+    "ask_stop_calling": {
+        "type": "boolean",
+        "description": "Output \"True\" if the customer is explicitly asking you to stop calling them, for example by saying \"stop calling me\" or \"don't call me anymore\". Otherwise output \"False\". If the customer is simply asking why you called them, this should be \"False\"."
+    },
+    "should_call_back": {
+        "type": "boolean",
+        "description": "Output True if the customer is indicating they would like the agent to call them back at a later time. In all other cases output False."
+    },
+    "call_back_time": {
+        "type": "str",
+        "description": "Output the day or time that the customer would like to be called back, for example \"in an hour\" or \"tomorrow morning\" or \"next week\"."
+    },
+    "does_not_have_information": {
+        "type": "boolean",
+        "description": "Output True if the customer is indicating that they do not have the information requested by the agent on hand and cannot answer the question. In all other cases, or if you are unsure, please mark this field as False. Please always mark this field with True or False ONLY."
+    },
+    "ask_more_time": {
+        "type": "boolean",
+        "description": "In the customer's bottommost response to the agent, is the customer asking for more time before responding to the agent? If the user answers a question about scheduling or timing, such as 'Is this a good time for you?' or 'Would you like to add a new phone number right now?' with ambiguous responses like 'maybe', this should be False. If the customer is indicating they don't have bank or debit information with them at the moment, this should be False."
+    },
+    "ask_repeat": {
+        "type": "boolean",
+        "description": "In the customer's bottommost response to the agent, does the customer want you to repeat something that was just said to them?"
+    },
+    "in_possession_of_vehicle": {
+        "type": "boolean",
+        "description": "Did the customer confirm they are in possession of their vehicle? If the customer indicates they do not have the vehicle, mark this field as False."
+    },
+    "ssn_last_4": {
+        "type": "str",
+        "description": "What are the last 4 digits of the customer's social security number? Never mark this value as 'skip'."
+    },
+    "date_of_birth": {
+        "type": "str",
+        "description": "What is the customer's date of birth? Please ensure that the string you save here is in the \"MM/DD/YYYY\" format."
+    },
+    "language_preference": {
+        "type": "str",
+        "description": "What is the customer's language preference? Choose from \"English\", \"Spanish\", or \"Other\"."
+    },
+    "contract_negotiation_language": {
+        "type": "str",
+        "description": "What language was the contract negotiated in? Choose from \"English\", \"Spanish\", or \"Other\"."
+    },
+    "contract_offered_language": {
+        "type": "str",
+        "description": "Was the contract offered to the customer in their preferred language?"
+    },
+    "email_address": {
+        "type": "str",
+        "description": "What email address did the customer use to submit their credit application and/or sign their contract? For example, \"one two three at one two three dot com\" would be \"123@123.com\"."
+    },
+    "street_address": {
+        "type": "str",
+        "description": "What is the customer's current address? The address should be formatted as \"123 Main St;Unit 2;Los Angeles;CA;90036\"."
+    },
+    "down_payment_cash": {
+        "type": "boolean",
+        "description": "Was the down payment made in cash? Only output False if the customer indicates that the down payment was not made in cash."
+    },
+    "was_trade_in": {
+        "type": "boolean",
+        "description": "Did the customer trade in a vehicle? Only output True if the customer indicates that they traded in a vehicle."
+    },
+    "trade_in_value": {
+        "type": "float",
+        "description": "How much did the dealership give the customer for their trade-in vehicle?"
+    },
+    "trade_in_vehicle_year": {
+        "type": "str",
+        "description": "What is the year of the vehicle the customer traded in?"
+    },
+    "trade_in_vehicle_make": {
+        "type": "str",
+        "description": "What is the make of the vehicle the customer traded in?"
+    },
+    "trade_in_vehicle_model": {
+        "type": "str",
+        "description": "What is the model of the vehicle the customer traded in?"
+    },
+    "contract_signed_electronically": {
+        "type": "boolean",
+        "description": "Did the customer sign the contract or any part of their loan documents on a computer, iPad, or any other electronic device? Only output False if the customer indicates that they did not sign electronically."
+    },
+    "permission_text_link": {
+        "type": "boolean",
+        "description": "Did the customer give permission to text them a link for uploading documents? Only output False if the customer indicates that they do not give permission."
+    },
+    "ach_setup": {
+        "type": "boolean",
+        "description": "Did the customer agree to sign up for electronic ACH withdrawal for their payment? Only output False if the customer indicates that they do not want to sign up for ACH withdrawal."
+    },
+    "primary_driver": {
+        "type": "boolean",
+        "description": "Has the customer explicitly confirmed that they are the primary driver of the vehicle? Only output False if the customer indicates that they are not the primary driver."
+    },
+    "confirmed_primary_driver": {
+        "type": "boolean",
+        "description": "Has the customer explicitly confirmed that they are the primary driver of the vehicle? Only output False if the customer indicates that they are not the primary driver."
+    },
+    "confirmed_primary_driver_with_spouse": {
+        "type": "boolean",
+        "description": "Has the customer explicitly confirmed that they, or their husband/wife/spouse is the primary driver of the vehicle? Only output False if the customer indicates that neither they nor their husband/wife/spouse is not the primary driver."
+    },
+    "actual_primary_driver_name": {
+        "type": "str",
+        "description": "If not {primary_driver}, what did the customer mention to be the name of the actual primary driver?"
+    },
+    "actual_primary_driver_relationship": {
+        "type": "str",
+        "description": "What did the customer mention to be their relationship to the actual primary driver?"
+    },
+    "actual_vehicle_year": {
+        "type": "str",
+        "description": "If not a {customer_vehicle}, what is the year of the customer's vehicle? If the transcript is about a trade-in vehicle, don't populate this field. If the customer has a {customer_vehicle}, don't populate this field."
+    },
+    "actual_vehicle_make": {
+        "type": "str",
+        "description": "If not a {customer_vehicle}, what is the make of the customer's vehicle? If the transcript is about a trade-in vehicle, don't populate this field. If the customer has a {customer_vehicle}, don't populate this field."
+    },
+    "actual_vehicle_model": {
+        "type": "str",
+        "description": "If not a {customer_vehicle}, what is the model of the customer's vehicle? If the transcript is about a trade-in vehicle, don't populate this field. If the customer has a {customer_vehicle}, don't populate this field."
+    },
+    "other_drivers": {
+        "type": "boolean",
+        "description": "Did the customer indicate that other people will be driving the vehicle? Only output True if the customer indicates that there are other drivers."
+    },
+    "other_driver_names": {
+        "type": "str",
+        "description": "What are the names and relationships of the other drivers?"
+    },
+    "non_vacation_vehicle": {
+        "type": "boolean",
+        "description": "Will the customer use this vehicle for anything other than vacation or recreational purposes?"
+    },
+    "satisfied_vehicle_condition": {
+        "type": "boolean",
+        "description": "Is the customer satisfied with the condition of the vehicle? Only output False if the customer indicates that they are not satisfied."
+    },
+    "aware_branded_title": {
+        "type": "boolean",
+        "description": "Is the customer aware that the vehicle has a branded title? Only output False if the customer indicates that they are not aware."
+    },
+    "signed_branded_title_document": {
+        "type": "boolean",
+        "description": "Did the customer sign a document indicating the vehicle has a branded title? Output False if the customer indicates that they did not sign such a document, or do not recall doing so."
+    },
+    "cell_phone_number": {
+        "type": "str",
+        "description": "What is the customer's ten-digit cell phone number?"
+    },
+    "home_phone_number": {
+        "type": "str",
+        "description": "What is the customer's ten-digit home phone number?"
+    },
+    "employment_company": {
+        "type": "str",
+        "description": "Where does the customer currently work? If the customer mentions that they do not have a job or that they are unemployed, output \"Unemployed\". If they mention they are retired, output \"Retired\"."
+    },
+    "occupation": {
+        "type": "str",
+        "description": "What is the customer's current occupation? If the customer mentions that they do not have a job or that they are unemployed, output \"Unemployed\". If they mention they are retired, output \"Retired\"."
+    },
+    "business_type": {
+        "type": "str",
+        "description": "What type of business is the customer in?"
+    },
+    "business_duration": {
+        "type": "int",
+        "description": "For how many months has the customer been in business? For example, \"10 years\" would be 120 months, \"a few months\" would be 3 months, and \"one and a half years\" would be 18 months."
+    },
+    "business_website": {
+        "type": "boolean",
+        "description": "Does the customer have a business website or a Yelp listing?"
+    },
+    "business_location": {
+        "type": "boolean",
+        "description": "Does the customer have a home office or business location that they operate from?"
+    },
+    "where_contract_signed": {
+        "type": "str",
+        "description": "Where did the customer sign the contract?"
+    },
+    "confirm_gap": {
+        "type": "boolean",
+        "description": "Did the customer confirm they added GAP coverage? Only output False if the customer indicates that they did not add GAP coverage."
+    },
+    "confirm_service_contract": {
+        "type": "boolean",
+        "description": "Did the customer confirm they added a service contract? Only output False if the customer indicates that they did not add a service contract."
+    },
+    "confirm_pre_paid_maintenance": {
+        "type": "boolean",
+        "description": "Did the customer confirm they purchased a pre-paid maintenance contract? Only output False if the customer indicates that they did not purchase a pre-paid maintenance contract."
+    },
+    "confirm_tire_wheel": {
+        "type": "boolean",
+        "description": "Did the customer confirm they purchased tire and wheel protection? Only output False if the customer indicates that they did not purchase tire and wheel protection."
+    },
+    "primary_address": {
+        "type": "str",
+        "description": "If the customer has been asked to provide their primary address, what address did they provide. Format it as - Street Address + apartment / unit number, City, 2-letter State Abbreviation, 5-digit Zip Code. Convert full state names to their two-letter abbreviation, and if the zip code has more than five digits, use only the first five. Ensure proper comma separation between components and remove any extra spaces. If any part of the address is missing, leave it blank. If the customer provides the zip code like \"nineteen two o three\", be sure to capture that as \"19203\". Do not ever output more than 4 components and always bucket the apartment or house numbers as part of the street address."
+    },
+    "confirmed_mailing_address": {
+        "type": "boolean",
+        "description": "Has the customer confirmed that their current address is also their mailing address? Only output False if the customer indicates that their current address is not the same as their mailing address. Only mark this field as True or False if the customer is explicitly asked about their mailing address."
+    },
+    "actual_mailing_address": {
+        "type": "str",
+        "description": "If the customer has been asked to provide their mailing address, what address did they provide. Format it as - Street Address + apartment / unit number, City, 2-letter State Abbreviation, 5-digit Zip Code. Convert full state names to their two-letter abbreviation, and if the zip code has more than five digits, use only the first five. Ensure proper comma separation between components and remove any extra spaces. If any part of the address is missing, leave it blank. If the customer provides the zip code like \"nineteen two o three\", be sure to capture that as \"19203\". Do not ever output more than 4 components and always bucket the apartment or house numbers as part of the street address."
+    },
+    "purchased_third_party_products": {
+        "type": "boolean",
+        "description": "Has the customer confirmed that they purchased {third_party_internal} as third party products?."
+    },
+    "purchased_options": {
+        "type": "boolean",
+        "description": "Has the customer confirmed that they purchased {customer_options} as options for their vehicle?."
+    },
+    "confirmed_purchase_price": {
+        "type": "boolean",
+        "description": "Did the customer explicitly confirm that {vehicle_purchase_price} was the purchase price for their vehicle. Output False if the customer mentions that they don't know what their annual percentage rate is."
+    },
+    "actual_purchase_price": {
+        "type": "str",
+        "description": "If not {vehicle_purchase_price}, what numerical value did the customer say was the purchase price of their vehicle? If the customer mentions that they don't know what their annual percentage rate is, then mark this field as 'skip'."
+    },
+    "confirmed_annual_percentage_rate": {
+        "type": "boolean",
+        "description": "Did the customer confirm their annual percentage rate is {apr} after the agent read it out to them? Only output False if the customer indicates that the agent has the incorrect annual percentage rate or mentions that they don't know what their annual percentage rate is."
+    },
+    "actual_annual_percentage_rate": {
+        "type": "str",
+        "description": "If not {apr}, what numerical value did the customer say was the annual percentage rate on their loan? If the customer mentions that they don't know what their annual percentage rate is, then mark this field as 'skip'."
+    },
+    "confirmed_contract_length": {
+        "type": "boolean",
+        "description": "Did the customer confirm their contract term is {contract_term} after the agent read it out to them? Only output False if the customer indicates that the agent has the incorrect contract length on file or mentions that they don't know what their annual percentage rate is."
+    },
+    "actual_contract_length": {
+        "type": "str",
+        "description": "If not {contract_term}, what numerical value did the customer say was the contract term in months on their vehicle loan? If the customer mentions that they don't know what their annual percentage rate is, then mark this field as 'skip'."
+    },
+    "confirmed_recurring_payment_amount": {
+        "type": "boolean",
+        "description": "Did the customer confirm their recurring payment amount is {payment_amount} after the agent read the amount out to them? Only output False if the customer indicates that the agent has the incorrect recurring payment amount or mentions that they don't know what their annual percentage rate is."
+    },
+    "actual_recurring_payment_amount": {
+        "type": "str",
+        "description": "If not {payment_amount}, what numerical value did the customer mention to be their monthly or bi-weekly payment amount for their vehicle loan? If the customer mentions that they don't know what their annual percentage rate is, then mark this field as 'skip'."
+    },
+    "accepted_payment_disclaimer": {
+        "type": "boolean",
+        "description": "If the agent read out a payment disclaimer in full and asked the customer \"Do you understand and accept this disclaimer?\", mark this field as True if the customer accepted this disclaimer. If the customer denies or provides an ambiguous response, mark this False."
+    },
+    "has_cosigner": {
+        "type": "boolean",
+        "description": "Output True if the customer explicitly mentioned that they have a cosigner on the loan. Mark this field as False if the customer mentions that they do not have a cosigner with them on this loan."
+    },
+    "preferred_phone_number": {
+        "type": "str",
+        "description": "What did the customer provide as their 10 digit preferred phone number."
+    },
+    "cosigner_preferred_phone_number": {
+        "type": "str",
+        "description": "What did the customer provide as the cosigner's 10 digit preferred phone number."
+    },
+    "cosigner_alternate_phone_number": {
+        "type": "str",
+        "description": "What did the customer provide as the cosigner's 10 digit alternate phone number."
+    },
+    "customer_vehicle": {
+        "type": "str",
+        "description": "What is the make, model, and year of the vehicle that the customer has purchased."
+    },
+    "vehicle_miles": {
+        "type": "int",
+        "description": "How many miles did the customer say the vehicle had at the time of purchase."
+    },
+    "auto_insurance_provider": {
+        "type": "str",
+        "description": "What did the customer provide as their insurance provider?"
+    },
+    "duration_of_residence": {
+        "type": "int",
+        "description": "Output how many months the customer has lived at their current residence."
+    },
+    "cosigner_duration_of_residence": {
+        "type": "int",
+        "description": "Output how many months the cosigner has lived at their current residence."
+    },
+    "place_of_employment": {
+        "type": "str",
+        "description": "What did the customer mention to be their place of employment?"
+    },
+    "cosigner_place_of_employment": {
+        "type": "str",
+        "description": "What did the customer mention to be the cosigner's place of employment"
+    },
+    "tenure_at_job": {
+        "type": "int",
+        "description": "Output how many months the customer mentioned they have been at their current job."
+    },
+    "cosigner_tenure_at_job": {
+        "type": "int",
+        "description": "Output how many months the customer mentioned the cosigner has been at their current job."
+    },
+    "role_at_job": {
+        "type": "str",
+        "description": "What is the customer's role at their current job?"
+    },
+    "cosigner_role_at_job": {
+        "type": "str",
+        "description": "What did the customer mention to be the cosigner's role at their current job?"
+    },
+    "work_phone_number": {
+        "type": "str",
+        "description": "What is the customer's 10 digit work phone number?"
+    },
+    "cosigner_work_phone_number": {
+        "type": "str",
+        "description": "What is the cosigner's 10 digit work phone number?"
+    },
+    "income_source": {
+        "type": "str",
+        "description": "The customer's primary source of income (like the name of the company they work for). Include the company name or type of work. Avoid generic responses like 'yes' or 'no'. Example responses can include 'Software Engineer at ABC Corp', 'Freelance Graphic Designer', 'Government Pension', etc. If the customer mentions that they are unemployed or have no source of income, then mark this field EXACTLY as 'Unemployed'."
+    },
+    "income_start_date": {
+        "type": "str",
+        "description": "What date did the customer start their current job or begin receiving their current income?"
+    },
+    "monthly_income_amount": {
+        "type": "str",
+        "description": "What is the customer's monthly income amount before taxes and deductions? Always mark this field with an amount only. If the customer says something vague like 'about six thousand dollars', populate this field with 6000.00. If the customer explicitly mentions that they don't know or they get paid by the hour, then mark this field as 'skip'. If the customer is saying something generic like 'about' or 'okay' then do not populate this field."
+    },
+    "hourly_rate": {
+        "type": "float",
+        "description": "What is the customer's hourly pay rate?"
+    },
+    "regular_hours_per_week": {
+        "type": "float",
+        "description": "How many regular hours does the customer work per week?"
+    },
+    "pay_frequency": {
+        "type": "str",
+        "description": "How often does the customer get paid (e.g., weekly, bi-weekly, monthly)?"
+    },
+    "second_income_source": {
+        "type": "str",
+        "description": "The customer's secondary source of income. Include the company name or type of work. Avoid generic responses like 'yes' or 'no'. Example responses can include 'Software Engineer at ABC Corp', 'Freelance Graphic Designer', 'Government Pension', etc."
+    },
+    "second_income_start_date": {
+        "type": "str",
+        "description": "What date did the customer start their current job or begin receiving their current income?"
+    },
+    "second_monthly_income_amount": {
+        "type": "str",
+        "description": "What is the customer's monthly income amount before taxes and deductions? Always mark this field with an amount only. If the customer says something vague like 'about six thousand dollars', populate this field with 6000.00. If the customer explicitly mentions that they don't know or they get paid by the hour, then mark this field as 'skip'. If the customer is saying something generic like 'about' or 'okay' then do not populate this field."
+    },
+    "second_hourly_rate": {
+        "type": "float",
+        "description": "What is the customer's hourly pay rate?"
+    },
+    "second_regular_hours_per_week": {
+        "type": "float",
+        "description": "How many regular hours does the customer work per week?"
+    },
+    "second_pay_frequency": {
+        "type": "str",
+        "description": "How often does the customer get paid (e.g., weekly, bi-weekly, monthly)?"
+    },
+    "additional_sources": {
+        "type": "boolean",
+        "description": "Output True if the customer mentioned that they have any additional sources of income?"
+    },
+    "confirmed_total_monthly_income": {
+        "type": "boolean",
+        "description": "Output True if the customer mentioned that the agent has the correct total monthly income on file."
+    },
+    "is_rideshare_vehicle": {
+        "type": "boolean",
+        "description": "Output True only if the customer clearly indicates the vehicle will be used for rideshare, delivery, or any business purpose. Otherwise, output False."
+    },
+    "confirmed_monthly_payment_plan": {
+        "type": "boolean",
+        "description": "Output True if the customer confirms that the monthly payment information is correct. Output False otherwise."
+    },
+    "received_title": {
+        "type": "boolean",
+        "description": "Output True if the customer mentioned that they have received their title. Output False otherwise."
+    },
+    "final_disclaimer": {
+        "type": "boolean",
+        "description": "Output False only if the customer mentions that they have no questions regarding their loan once the agent has read out the entire disclaimer. Output True otherwise."
+    },
+    "has_futher_questions": {
+        "type": "boolean",
+        "description": "Output False only if the customer mentions that they have no questions regarding their loan once the agent has read out the entire disclaimer. Output True otherwise."
+    },
+    "primary_driver_present_at_dealership": {
+        "type": "boolean",
+        "description": "Output True if the customer mentioned that the actual primary driver was present at the dealership at the time when the vehicle was purchased."
+    },
+    "not_listed_on_contract_reason": {
+        "type": "str",
+        "description": "When the customer was asked why the primary driver was not present at the dealership at time of purchase, what reason did they state?"
+    },
+    "has_appearance_package": {
+        "type": "boolean",
+        "description": "Output True if the customer explicitly confirmed that they did buy an appearance package. Otherwise output False."
+    }
+}

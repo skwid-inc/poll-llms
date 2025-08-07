@@ -1,0 +1,498 @@
+{
+    "confirmed_identity": {
+        "type": "boolean",
+        "description": "¿El cliente ha confirmado definitivamente que es {customer_name}?"
+    },
+    "has_time_to_chat": {
+        "type": "boolean",
+        "description": "Si el agente le preguntó al cliente si tenía tiempo para chatear, marque este campo como Verdadero si el cliente mencionó, explícita o implícitamente, que está dispuesto a chatear. Si el cliente indicó explícitamente que no tenía tiempo para chatear, marque este campo como Falso. Para cualquier otra respuesta ambigua, no complete este campo. Algunos ejemplos de respuestas afirmativas"
+    },
+    "confirmed_email": {
+        "type": "boolean",
+        "description": "¿El cliente ha confirmado que su dirección de correo electrónico es {customer_email}? Solo marque Falso si el cliente indica que el agente tiene el correo electrónico incorrecto."
+    },
+    "confirmed_address": {
+        "type": "boolean",
+        "description": "¿El cliente ha confirmado que su dirección es {customer_address}? Solo marque Falso si el cliente indica que el agente tiene la dirección incorrecta."
+    },
+    "confirmed_preferred_phone_number": {
+        "type": "boolean",
+        "description": "¿El cliente confirmó que su número de teléfono preferido es {customer_phone} después de que el agente le leyera el número? Solo marque Falso si el cliente indica que el agente tiene el número incorrecto."
+    },
+    "confirmed_monthly_payment_plan": {
+        "type": "boolean",
+        "description": "Devuelve True si el cliente confirma que la información de pago mensual es correcta. Devuelve False en caso contrario."
+    },
+    "new_preferred_phone_number": {
+        "type": "str",
+        "description": "Si no es {customer_phone}, ¿qué nuevo número de teléfono preferido proporcionó el cliente?"
+    },
+    "confirmed_new_preferred_phone_number": {
+        "type": "boolean",
+        "description": "Si el cliente eligió proporcionar un nuevo número de teléfono preferido, ¿confirmó que el agente lo capturó correctamente después de que el agente se lo leyera? La cadena del Agente antes de que el cliente lo confirme debe incluir las palabras \"nuevo preferido\" o \"actualizado\"."
+    },
+    "has_alternate_number": {
+        "type": "boolean",
+        "description": "¿El cliente ha confirmado que tiene un número de teléfono alternativo que le gustaría agregar a su cuenta? Si el cliente está declarando explícitamente que no quiere agregar un número de teléfono alternativo, marque este campo como Falso."
+    },
+    "alternate_phone_number": {
+        "type": "str",
+        "description": "Si el cliente indica que le gustaría agregar un número de teléfono alternativo a su cuenta, ¿cuál es el número de teléfono alternativo del cliente?"
+    },
+    "confirmed_alternate_phone_number": {
+        "type": "boolean",
+        "description": "Si el cliente eligió proporcionar un número de teléfono alternativo, ¿confirmó que el agente lo capturó correctamente después de que el agente se lo leyera?"
+    },
+    "use_number_for_loan": {
+        "type": "boolean",
+        "description": "¿El cliente dio permiso al agente para usar su nuevo número de teléfono alternativo para la administración del préstamo?"
+    },
+    "confirmed_vehicle": {
+        "type": "boolean",
+        "description": "¿El cliente confirmó explícitamente al agente que tiene un {customer_vehicle}?"
+    },
+    "actual_vehicle": {
+        "type": "str",
+        "description": "Si no es un {customer_vehicle}, ¿qué vehículo tiene el cliente?"
+    },
+    "name_of_dealership": {
+        "type": "str",
+        "description": "What did the customer mention to be the name of the dealership at which they bought their vehicle?"
+    },
+    "confirmed_down_payment": {
+        "type": "boolean",
+        "description": "¿El cliente confirmó explícitamente al agente que su pago inicial fue de ${customer_down_payment}?"
+    },
+    "actual_down_payment_amount": {
+        "type": "float",
+        "description": "¿Qué cantidad declaró el cliente como su pago inicial?"
+    },
+    "money_owed_to_dealer": {
+        "type": "boolean",
+        "description": "¿El cliente está indicando que todavía le debe más dinero al concesionario?"
+    },
+    "money_owed_to_dealer_amount": {
+        "type": "float",
+        "description": "¿Cuánto dinero adicional debe el cliente al concesionario? Si el cliente no debe ningún dinero adicional, marque este campo como 0."
+    },
+    "money_owed_to_dealer_schedule": {
+        "type": "str",
+        "description": "¿Cuándo indica el cliente que pagará el dinero adicional adeudado al concesionario?"
+    },
+    "engine_issues": {
+        "type": "boolean",
+        "description": "Cuando se le preguntó al cliente si su vehículo tenía problemas de motor o transmisión, ¿dijeron explícitamente que sí o que no? Si tenían problemas de motor o transmisión, marque este campo como Verdadero."
+    },
+    "dealer_aware_problems": {
+        "type": "boolean",
+        "description": "¿El cliente ya le ha informado al concesionario sobre sus problemas de motor o transmisión?"
+    },
+    "dealer_helping": {
+        "type": "boolean",
+        "description": "¿El concesionario está ayudando al cliente a abordar estos problemas de motor o transmisión?"
+    },
+    "purchased_for_someone_else": {
+        "type": "boolean",
+        "description": "¿El cliente compró o refinanció el vehículo para alguien que no sea él mismo?"
+    },
+    "purchased_for_name": {
+        "type": "str",
+        "description": "¿El cliente proporcionó un nombre para la persona para la que se compró o refinanció el vehículo?"
+    },
+    "purchased_for_address": {
+        "type": "str",
+        "description": "¿El cliente proporcionó una dirección para la persona para la que se compró o refinanció el vehículo, y cuál fue?"
+    },
+    "purchased_for_relationship": {
+        "type": "str",
+        "description": "¿El cliente proporcionó su relación con la persona para la que se compró o refinanció el vehículo, y cuál era?"
+    },
+    "purchased_for_phone_number": {
+        "type": "str",
+        "description": "¿El cliente proporcionó un número de teléfono para la persona para la que se compró o refinanció el vehículo, y cuál era?"
+    },
+    "dealer_aware_purchase": {
+        "type": "boolean",
+        "description": "¿El cliente indicó que el concesionario sabe que el cliente compró o refinanció el vehículo para alguien que no está en el hogar del cliente?"
+    },
+    "bank_account_number": {
+        "type": "str",
+        "description": "El número de cuenta bancaria del cliente."
+    },
+    "confirmed_bank_account_number": {
+        "type": "boolean",
+        "description": "¿El cliente confirmó que el agente capturó el número de cuenta bancaria correcto después de que el agente le leyera el número? Solo marque Falso si el cliente indica que el agente tiene el número incorrecto."
+    },
+    "bank_routing_number": {
+        "type": "str",
+        "description": "El número de ruta bancaria del cliente."
+    },
+    "confirmed_bank_routing_number": {
+        "type": "boolean",
+        "description": "¿El cliente confirmó que el agente capturó el número de ruta bancaria correcto después de que el agente le leyera el número? Solo marque Falso si el cliente indica que el agente tiene el número incorrecto."
+    },
+    "bank_account_type": {
+        "type": "str",
+        "description": "El tipo de cuenta bancaria del cliente, \"corriente\" o \"ahorros\"."
+    },
+    "bank_name": {
+        "type": "str",
+        "description": "El nombre del banco del cliente."
+    },
+    "accepted_payment_disclosure": {
+        "type": "boolean",
+        "description": "Cuando el agente lee la exención de responsabilidad de configuración de pagos automáticos que comienza con \"Solo para confirmar, pagará su pago mensual\", si el cliente acepta esta exención de responsabilidad, marque este campo como Verdadero. Si el cliente lo niega, márquelo como Falso."
+    },
+    "debit_card_number": {
+        "type": "str",
+        "description": "El número de tarjeta de débito del cliente."
+    },
+    "confirmed_debit_card_number": {
+        "type": "boolean",
+        "description": "¿El cliente confirmó que el agente capturó el número de tarjeta de débito correcto después de que el agente le leyera el número? Solo marque Falso si el cliente indica que el agente tiene el número incorrecto."
+    },
+    "debit_card_expiration": {
+        "type": "str",
+        "description": "La fecha de vencimiento de la tarjeta de débito del cliente en MMAAAA. Por ejemplo, \"cero nueve tres uno\" sería \"092031\". \"julio veintinueve\" sería \"072029\"."
+    },
+    "debit_card_cvv": {
+        "type": "str",
+        "description": "El CVV de la tarjeta de débito del cliente."
+    },
+    "automatic_payments": {
+        "type": "boolean",
+        "description": "Basándose en la respuesta más reciente del cliente, ¿el cliente quiere configurar pagos automáticos por teléfono? Si el cliente menciona que no tiene su información bancaria o de débito en este momento, esto debería ser Falso. Si el cliente simplemente está indicando que no quiere configurar pagos automáticos por una cantidad particular, este campo debe establecerse en Verdadero."
+    },
+    "bank_or_debit": {
+        "type": "str",
+        "description": "Establezca este campo en \"banco\" solo si el cliente declara explícitamente que quiere usar una nueva cuenta bancaria para el pago, y \"débito\" solo si el cliente declara explícitamente que quiere usar una nueva tarjeta de débito para el pago."
+    },
+    "desired_monthly_payment_amount": {
+        "type": "float",
+        "description": "¿Cuánto indicó explícitamente el cliente que le gustaría pagar cada mes?"
+    },
+    "use_myaccount": {
+        "type": "boolean",
+        "description": "¿El cliente quiere ser configurado con el sitio web MyAccount o PayOnline?"
+    },
+    "customer_wants_supervisor": {
+        "type": "boolean",
+        "description": "¿El cliente está indicando que quiere hablar con un supervisor, representante, persona real, servicio al cliente, operador, humano o agente en vivo, por ejemplo, diciendo \"servicio al cliente\", \"operador\", \"agente\", \"representante\", etc.?"
+    },
+    "customer_frustrated": {
+        "type": "boolean",
+        "description": "¿El cliente está mostrando múltiples signos consistentes de frustración dirigidos hacia el agente? Si el cliente simplemente está informando problemas con su vehículo, esto debería ser Falso. Si el cliente se está quejando de que el concesionario no está ayudando con los problemas de su vehículo, esto debería ser Falso. Si el cliente simplemente está haciendo preguntas sobre el proceso de verificación, o sobre por qué necesita obtener esta información, esto debería ser Falso. Si el cliente está declarando que no quiere configurar pagos automáticos, esto debería ser Falso."
+    },
+    "denies_loan": {
+        "type": "boolean",
+        "description": "¿El cliente está negando tener un préstamo de auto, por ejemplo, diciendo 'No tengo este préstamo'? Si no está seguro, esto debería ser Falso."
+    },
+    "does_not_have_car": {
+        "type": "boolean",
+        "description": "¿El cliente está declarando que no tiene un coche, o que aún no ha recibido el coche? Si simplemente están respondiendo negativamente a poseer un tipo específico de coche, esto es Falso. Si no está seguro, esto debería ser Falso."
+    },
+    "does_not_speak_english": {
+        "type": "boolean",
+        "description": "¿El cliente está indicando que no puede comunicarse en inglés, por ejemplo, diciendo \"no habla inglés\" o \"habla español\"? Si el cliente está confirmando su capacidad para hablar inglés, o solicitando al agente que se comunique en inglés, por ejemplo, diciendo \"inglés por favor\", \"solo puedo hablar inglés\", \"solo hablo inglés\", etc., entonces esto debería ser Falso."
+    },
+    "ask_stop_calling": {
+        "type": "boolean",
+        "description": "Marque \"Verdadero\" si el cliente está pidiendo explícitamente que deje de llamarle, por ejemplo, diciendo \"deje de llamarme\" o \"no me llame más\". De lo contrario, marque \"Falso\". Si el cliente simplemente está preguntando por qué le llamó, esto debería ser \"Falso\"."
+    },
+    "should_call_back": {
+        "type": "boolean",
+        "description": "Marque Verdadero si el cliente está indicando que le gustaría que el agente le volviera a llamar en un momento posterior. En todos los demás casos, marque Falso."
+    },
+    "call_back_time": {
+        "type": "str",
+        "description": "Indique el día o la hora en que el cliente desea que se le vuelva a llamar, por ejemplo \"en una hora\" o \"mañana por la mañana\" o \"la próxima semana\"."
+    },
+    "does_not_have_information": {
+        "type": "boolean",
+        "description": "Marque Verdadero si el cliente está indicando que no tiene a mano la información solicitada por el agente y no puede responder a la pregunta. En todos los demás casos, o si no está seguro, marque este campo como Falso. Por favor, marque siempre este campo SOLO con Verdadero o Falso."
+    },
+    "ask_more_time": {
+        "type": "boolean",
+        "description": "En la respuesta más reciente del cliente al agente, ¿está el cliente pidiendo más tiempo antes de responder al agente? Si el usuario responde a una pregunta sobre programación o tiempo, como '¿Es este un buen momento para usted?' o '¿Le gustaría agregar un nuevo número de teléfono ahora mismo?' con respuestas ambiguas como 'tal vez', esto debería ser Falso. Si el cliente está indicando que no tiene información bancaria o de débito con ellos en este momento, esto debería ser Falso."
+    },
+    "ask_repeat": {
+        "type": "boolean",
+        "description": "En la respuesta más reciente del cliente al agente, ¿el cliente quiere que repita algo que se le acaba de decir?"
+    },
+    "in_possession_of_vehicle": {
+        "type": "boolean",
+        "description": "¿El cliente confirmó que está en posesión de su vehículo? Si el cliente indica que no tiene el vehículo, marque este campo como Falso."
+    },
+    "ssn_last_4": {
+        "type": "str",
+        "description": "¿Cuáles son los últimos 4 dígitos del número de seguro social del cliente?"
+    },
+    "language_preference": {
+        "type": "str",
+        "description": "¿Cuál es la preferencia de idioma del cliente? Elija entre \"Inglés\", \"Español\" u \"Otro\"."
+    },
+    "contract_negotiation_language": {
+        "type": "str",
+        "description": "¿En qué idioma se negoció el contrato? Elija entre \"Inglés\", \"Español\" u \"Otro\"."
+    },
+    "contract_offered_language": {
+        "type": "str",
+        "description": "¿Se ofreció el contrato al cliente en su idioma preferido?"
+    },
+    "email_address": {
+        "type": "str",
+        "description": "¿Qué dirección de correo electrónico utilizó el cliente para enviar su solicitud de crédito y/o firmar su contrato? Por ejemplo, \"uno dos tres arroba uno dos tres punto com\" sería \"123@123.com\"."
+    },
+    "street_address": {
+        "type": "str",
+        "description": "¿Cuál es la dirección actual del cliente? La dirección debe tener el formato \"123 Main St;Unidad 2;Los Ángeles;CA;90036\"."
+    },
+    "down_payment_cash": {
+        "type": "boolean",
+        "description": "¿Se hizo el pago inicial en efectivo? Solo marque Falso si el cliente indica que el pago inicial no se hizo en efectivo."
+    },
+    "was_trade_in": {
+        "type": "boolean",
+        "description": "¿El cliente intercambió un vehículo? Solo marque Verdadero si el cliente indica que intercambió un vehículo."
+    },
+    "trade_in_value": {
+        "type": "float",
+        "description": "¿Cuánto le dio el concesionario al cliente por su vehículo de intercambio?"
+    },
+    "trade_in_vehicle_year": {
+        "type": "str",
+        "description": "¿Cuál es el año del vehículo que el cliente intercambió?"
+    },
+    "trade_in_vehicle_make": {
+        "type": "str",
+        "description": "¿Cuál es la marca del vehículo que el cliente intercambió?"
+    },
+    "trade_in_vehicle_model": {
+        "type": "str",
+        "description": "¿Cuál es el modelo del vehículo que el cliente intercambió?"
+    },
+    "contract_signed_electronically": {
+        "type": "boolean",
+        "description": "¿El cliente firmó el contrato o alguna parte de sus documentos de préstamo en una computadora, iPad o cualquier otro dispositivo electrónico? Solo marque Falso si el cliente indica que no firmó electrónicamente."
+    },
+    "permission_text_link": {
+        "type": "boolean",
+        "description": "¿El cliente dio permiso para enviarle un enlace por mensaje de texto para cargar documentos? Solo marque Falso si el cliente indica que no da permiso."
+    },
+    "ach_setup": {
+        "type": "boolean",
+        "description": "¿El cliente aceptó inscribirse en el retiro electrónico ACH para su pago? Solo marque Falso si el cliente indica que no quiere inscribirse en el retiro ACH."
+    },
+    "primary_driver": {
+        "type": "boolean",
+        "description": "¿Es el cliente el conductor principal del vehículo? Solo marque Falso si el cliente indica que no es el conductor principal."
+    },
+    "actual_vehicle_year": {
+        "type": "str",
+        "description": "Si no es un {customer_vehicle}, ¿cuál es el año del vehículo del cliente? Si la transcripción es sobre un vehículo de intercambio, no complete este campo. Si el cliente tiene un {customer_vehicle}, no complete este campo."
+    },
+    "actual_vehicle_make": {
+        "type": "str",
+        "description": "Si no es un {customer_vehicle}, ¿cuál es la marca del vehículo del cliente? Si la transcripción es sobre un vehículo de intercambio, no complete este campo. Si el cliente tiene un {customer_vehicle}, no complete este campo."
+    },
+    "actual_vehicle_model": {
+        "type": "str",
+        "description": "Si no es un {customer_vehicle}, ¿cuál es el modelo del vehículo del cliente? Si la transcripción es sobre un vehículo de intercambio, no complete este campo. Si el cliente tiene un {customer_vehicle}, no complete este campo."
+    },
+    "other_drivers": {
+        "type": "boolean",
+        "description": "¿El cliente indicó que otras personas conducirán el vehículo? Solo marque Verdadero si el cliente indica que hay otros conductores."
+    },
+    "other_driver_names": {
+        "type": "str",
+        "description": "¿Cuáles son los nombres y relaciones de los otros conductores?"
+    },
+    "non_vacation_vehicle": {
+        "type": "boolean",
+        "description": "¿El cliente utilizará este vehículo para algo más que vacaciones o fines recreativos?"
+    },
+    "satisfied_vehicle_condition": {
+        "type": "boolean",
+        "description": "¿Está el cliente satisfecho con la condición del vehículo? Solo marque Falso si el cliente indica que no está satisfecho."
+    },
+    "aware_branded_title": {
+        "type": "boolean",
+        "description": "¿El cliente es consciente de que el vehículo tiene un título marcado? Solo marque Falso si el cliente indica que no está al tanto."
+    },
+    "signed_branded_title_document": {
+        "type": "boolean",
+        "description": "¿El cliente firmó un documento indicando que el vehículo tiene un título marcado? Marque Falso si el cliente indica que no firmó tal documento, o no recuerda haberlo hecho."
+    },
+    "cell_phone_number": {
+        "type": "str",
+        "description": "¿Cuál es el número de teléfono celular de diez dígitos del cliente?"
+    },
+    "home_phone_number": {
+        "type": "str",
+        "description": "¿Cuál es el número de teléfono fijo de diez dígitos del cliente?"
+    },
+    "employment_company": {
+        "type": "str",
+        "description": "¿Dónde trabaja actualmente el cliente? Si el cliente menciona que no tiene trabajo o que está desempleado, escriba \"Desempleado\". Si mencionan que están jubilados, escriba \"Jubilado\"."
+    },
+    "occupation": {
+        "type": "str",
+        "description": "¿Cuál es la ocupación actual del cliente? Si el cliente menciona que no tiene trabajo o que está desempleado, escriba \"Desempleado\". Si mencionan que están jubilados, escriba \"Jubilado\"."
+    },
+    "business_type": {
+        "type": "str",
+        "description": "¿En qué tipo de negocio está el cliente?"
+    },
+    "business_duration": {
+        "type": "int",
+        "description": "¿Durante cuántos meses ha estado el cliente en el negocio? Por ejemplo, \"10 años\" serían 120 meses, \"unos pocos meses\" serían 3 meses, y \"un año y medio\" serían 18 meses."
+    },
+    "business_website": {
+        "type": "boolean",
+        "description": "¿El cliente tiene un sitio web de negocios o una lista en Yelp?"
+    },
+    "business_location": {
+        "type": "boolean",
+        "description": "¿El cliente tiene una oficina en casa o una ubicación de negocio desde la que opera?"
+    },
+    "where_contract_signed": {
+        "type": "str",
+        "description": "¿Dónde firmó el cliente el contrato?"
+    },
+    "confirm_gap": {
+        "type": "boolean",
+        "description": "¿El cliente confirmó que agregó cobertura GAP? Solo marque Falso si el cliente indica que no agregó cobertura GAP."
+    },
+    "confirm_service_contract": {
+        "type": "boolean",
+        "description": "¿El cliente confirmó que agregó un contrato de servicio? Solo marque Falso si el cliente indica que no agregó un contrato de servicio."
+    },
+    "confirm_pre_paid_maintenance": {
+        "type": "boolean",
+        "description": "¿El cliente confirmó que compró un contrato de mantenimiento prepagado? Solo marque Falso si el cliente indica que no compró un contrato de mantenimiento prepagado."
+    },
+    "confirm_tire_wheel": {
+        "type": "boolean",
+        "description": "¿El cliente confirmó que compró protección de llantas y ruedas? Solo marque Falso si el cliente indica que no compró protección de llantas y ruedas."
+    },
+    "primary_address": {
+        "type": "str",
+        "description": "Si se le ha pedido al cliente que proporcione su dirección principal, ¿qué dirección proporcionó? Formatéela así - Dirección, Ciudad, Abreviatura del Estado de 2 letras, Código Postal de 5 dígitos. Convierta los nombres completos de estados a su abreviatura de dos letras, y si el código postal tiene más de cinco dígitos, use solo los primeros cinco. Asegure la separación correcta con comas y elimine cualquier espacio extra. Si falta alguna parte de la dirección, déjela en blanco. Si el cliente proporciona el código postal como \"diecinueve dos cero tres\", asegúrese de capturarlo como \"19203\"."
+    },
+    "confirmed_mailing_address": {
+        "type": "boolean",
+        "description": "¿Ha confirmado el cliente que su dirección actual es también su dirección postal? Solo indique False si el cliente indica que su dirección actual no es la misma que su dirección postal. Solo marque este campo como True o False si se le pregunta explícitamente al cliente sobre su dirección postal."
+    },
+    "actual_mailing_address": {
+        "type": "str",
+        "description": "Si se le ha pedido al cliente que proporcione su dirección postal, ¿qué dirección proporcionó? Formatéela así - Dirección, Ciudad, Abreviatura del Estado de 2 letras, Código Postal de 5 dígitos. Convierta los nombres completos de estados a su abreviatura de dos letras, y si el código postal tiene más de cinco dígitos, use solo los primeros cinco. Asegure la separación correcta con comas y elimine cualquier espacio extra. Si falta alguna parte de la dirección, déjela en blanco."
+    },
+    "purchased_third_party_products": {
+        "type": "boolean",
+        "description": "¿Ha confirmado el cliente que compró {third_party_internal} como productos de terceros?"
+    },
+    "purchased_options": {
+        "type": "boolean",
+        "description": "¿Ha confirmado el cliente que compró {customer_options} como opciones para su vehículo?"
+    },
+    "purchased_option_1": {
+        "type": "boolean",
+        "description": "¿Ha confirmado el cliente que compró {vehicle_options_list[0] if len(vehicle_options_list) > 0 else ''} como opciones para su vehículo?."
+    },
+    "purchased_option_2": {
+        "type": "boolean",
+        "description": "¿Ha confirmado el cliente que compró {vehicle_options_list[1] if len(vehicle_options_list) > 1 else ''} como opciones para su vehículo?."
+    },
+    "purchased_option_3": {
+        "type": "boolean",
+        "description": "¿Ha confirmado el cliente que compró {vehicle_options_list[2] if len(vehicle_options_list) > 2 else ''} como opciones para su vehículo?."
+    },
+    "purchased_option_4": {
+        "type": "boolean",
+        "description": "¿Ha confirmado el cliente que compró {vehicle_options_list[3] if len(vehicle_options_list) > 3 else ''} como opciones para su vehículo?."
+    },
+    "purchased_option_5": {
+        "type": "boolean",
+        "description": "¿Ha confirmado el cliente que compró {vehicle_options_list[4] if len(vehicle_options_list) > 4 else ''} como opciones para su vehículo?."
+    },
+    "confirmed_purchase_price": {
+        "type": "boolean",
+        "description": "¿El cliente confirmó explícitamente que {vehicle_purchase_price} fue el precio de compra de su vehículo?"
+    },
+    "actual_purchase_price": {
+        "type": "float",
+        "description": "Si no es {vehicle_purchase_price}, ¿cuál dijo el cliente que fue el precio de compra de su vehículo?"
+    },
+    "confirmed_annual_percentage_rate": {
+        "type": "boolean",
+        "description": "¿Confirmó el cliente que su tasa de porcentaje anual es {apr} después de que el agente se la leyera? Solo indique False si el cliente indica que el agente tiene la tasa de porcentaje anual incorrecta."
+    },
+    "actual_annual_percentage_rate": {
+        "type": "float",
+        "description": "Si no es {apr}, ¿cuál dijo el cliente que era la tasa de porcentaje anual de su préstamo?"
+    },
+    "confirmed_contract_length": {
+        "type": "boolean",
+        "description": "¿Confirmó el cliente que el plazo de su contrato es {contract_term} después de que el agente se lo leyera? Solo indique False si el cliente indica que el agente tiene el plazo del contrato incorrecto en el archivo."
+    },
+    "actual_contract_length": {
+        "type": "int",
+        "description": "Si no es {contract_term}, ¿cuál dijo el cliente que era el plazo del contrato en meses para su préstamo vehicular?"
+    },
+    "confirmed_recurring_payment_amount": {
+        "type": "boolean",
+        "description": "¿Confirmó el cliente que su monto de pago recurrente es {payment_amount} después de que el agente le leyera la cantidad? Solo indique False si el cliente indica que el agente tiene el monto de pago recurrente incorrecto."
+    },
+    "actual_recurring_payment_amount": {
+        "type": "float",
+        "description": "Si no es {payment_amount}, ¿cuál mencionó el cliente que era su monto de pago mensual o quincenal para su préstamo vehicular?"
+    },
+    "accepted_payment_disclaimer": {
+        "type": "boolean",
+        "description": "Si el agente leyó un descargo de responsabilidad de pago completo y preguntó al cliente \"¿Entiende y acepta este descargo de responsabilidad?\", marque este campo como True si el cliente aceptó este descargo. Si el cliente niega o proporciona una respuesta ambigua, márquelo como False."
+    },
+    "actual_email": {
+        "type": "str",
+        "description": "Si se le ha solicitado al cliente ({customer_full_name}) su dirección de correo electrónico, ¿cuál proporcionó? Si el cliente usa \"nombre\" o \"apellido\" en su correo electrónico, asegúrese de usar su nombre o apellido real. Si el cliente menciona explícitamente que no tiene correo electrónico o que no lo sabe, marque este campo como 'skip'."
+    },
+    "has_mechanical_issues": {
+        "type": "boolean",
+        "description": "Marque este campo como True si el cliente reporta cualquier problema mecánico con su vehículo. Si el cliente indica que no hay problemas mecánicos, márquelo como False."
+    },
+    "confirmed_primary_driver": {
+        "type": "boolean",
+        "description": "¿Ha confirmado explícitamente el cliente que es el conductor principal del vehículo? Solo indique False si el cliente indica que no es el conductor principal."
+    },
+    "confirmed_primary_driver_with_spouse": {
+        "type": "boolean",
+        "description": "¿Ha confirmado explícitamente el cliente que él/ella, o su esposo/esposa/cónyuge es el conductor principal del vehículo? Solo devolver False si el cliente indica que ni él/ella ni su esposo/esposa/cónyuge es el conductor principal."
+    },
+    "actual_primary_driver_name": {
+        "type": "str",
+        "description": "Si no es {primary_driver}, ¿qué nombre mencionó el cliente como el conductor principal real?"
+    },
+    "actual_primary_driver_relationship": {
+        "type": "str",
+        "description": "¿Qué relación mencionó el cliente tener con el conductor principal real?"
+    },
+    "primary_driver_present_at_dealership": {
+        "type": "boolean",
+        "description": "Salida True si el cliente mencionó que el conductor principal real estaba presente en el concesionario en el momento en que se compró el vehículo."
+    },
+    "not_listed_on_contract_reason": {
+        "type": "str",
+        "description": "Cuando se le preguntó al cliente por qué el conductor principal no estaba presente en el concesionario en el momento de la compra, ¿qué razón indicó?"
+    },
+    "was_paid_in_full": {
+        "type": "boolean",
+        "description": "¿Se ha pagado el anticipo en su totalidad? Salida Verdadero si se ha pagado en su totalidad, Falso si se ha pagado parcialmente."
+    },
+    "answered_monthly_payment_plan": {
+        "type": "boolean",
+        "description": "El resultado es True si el cliente confirma que la información de pago mensual es correcta. El resultado es False en caso contrario."
+    },
+    "confirmed_dealership": {
+        "type": "boolean",
+        "description": "¿El cliente compró su vehículo en {dealer_name}?"
+    }
+}
