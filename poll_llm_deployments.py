@@ -25,6 +25,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+########################
+# Yes it is known that each request establishes a new connection to the LLM.
+# This means that the latency is not just the time to complete the request, but also the time to establish the connection.
+# This is the same as what we currently do in prod.
+########################
+
 @dataclass
 class DeploymentConfig:
     """Configuration for a deployment endpoint"""
@@ -43,10 +49,8 @@ class LatencyResult:
     timestamp: datetime
     success: bool
     error: Optional[str] = None
-    tokens_used: int = 0
     time_to_first_token_ms: Optional[float] = None  # Time to first token (TTFT)
     completion_time_ms: Optional[float] = None  # Time from first to last token
-    tokens_per_second: Optional[float] = None  # Throughput metric
 
 class LLMLatencyPoller:
     """Polls multiple LLM deployments to find the fastest one"""
@@ -153,7 +157,6 @@ class LLMLatencyPoller:
             timestamp = datetime.now()
             start_time = None
             first_token_time = None
-            tokens_received = 0
             full_response = ""
             
             try:
@@ -170,12 +173,13 @@ class LLMLatencyPoller:
                 
                 # Stream the response to measure TTFT
                 async for chunk in client.astream([message]):
-                    if first_token_time is None:
+                    has_payload = (getattr(chunk, "content", None) not in (None, "")) or (
+                        hasattr(chunk, "tool_calls") and chunk.tool_calls
+                    )
+                    if first_token_time is None and has_payload:
                         first_token_time = time.perf_counter()
-                    
-                    # Count tokens and build response
-                    if hasattr(chunk, 'content') and chunk.content:
-                        tokens_received += 1
+
+                    if getattr(chunk, "content", None):
                         full_response += chunk.content
                 
                 # Calculate all timing metrics
@@ -185,16 +189,10 @@ class LLMLatencyPoller:
                 if first_token_time:
                     ttft_ms = (first_token_time - start_time) * 1000
                     completion_time_ms = (end_time - first_token_time) * 1000
-                    tokens_per_second = tokens_received / ((end_time - first_token_time) if end_time > first_token_time else 1)
                 else:
                     # No tokens received
                     ttft_ms = total_latency_ms
                     completion_time_ms = 0
-                    tokens_per_second = 0
-                
-                # Estimate total tokens used for cost tracking
-                prompt_tokens = len(self.test_prompt.split())
-                tokens_used = prompt_tokens + tokens_received
                 
                 return LatencyResult(
                     deployment=deployment_config.name,
@@ -202,10 +200,8 @@ class LLMLatencyPoller:
                     latency_ms=total_latency_ms,
                     timestamp=timestamp,
                     success=True,
-                    tokens_used=tokens_used,
                     time_to_first_token_ms=ttft_ms,
-                    completion_time_ms=completion_time_ms,
-                    tokens_per_second=tokens_per_second
+                    completion_time_ms=completion_time_ms
                 )
                 
             except Exception as e:
@@ -220,8 +216,7 @@ class LLMLatencyPoller:
                     success=False,
                     error=str(e),
                     time_to_first_token_ms=None,
-                    completion_time_ms=None,
-                    tokens_per_second=None
+                    completion_time_ms=None
                 )
     
     async def poll_all_deployments(self) -> List[LatencyResult]:
@@ -314,29 +309,29 @@ class LLMLatencyPoller:
         if openai_results:
             print("\nOpenAI Deployments:")
             print("-"*100)
-            print(f"{'Deployment':30s} {'Total':>10s} {'TTFT':>10s} {'Completion':>12s} {'Tokens/s':>10s} {'Status':>8s}")
+            print(f"{'Deployment':30s} {'Total':>10s} {'TTFT':>10s} {'Completion':>12s} {'Status':>8s}")
             print("-"*100)
             for r in openai_results:
                 status = "✓" if r.success else "✗"
                 if r.success and r.time_to_first_token_ms:
-                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {r.time_to_first_token_ms:10.2f} {r.completion_time_ms:12.2f} {r.tokens_per_second:10.2f} {status:>8s}")
+                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {r.time_to_first_token_ms:10.2f} {r.completion_time_ms:12.2f} {status:>8s}")
                 else:
-                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {'N/A':>10s} {'N/A':>12s} {'N/A':>10s} {status:>8s}")
+                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {'N/A':>10s} {'N/A':>12s} {status:>8s}")
         
         # Print Azure results (sorted by TTFT)
         if azure_results:
             print("\nAzure Deployments:")
             print("-"*100)
-            print(f"{'Deployment':30s} {'Total':>10s} {'TTFT':>10s} {'Completion':>12s} {'Tokens/s':>10s} {'Status':>8s}")
+            print(f"{'Deployment':30s} {'Total':>10s} {'TTFT':>10s} {'Completion':>12s} {'Status':>8s}")
             print("-"*100)
             azure_sorted = sorted(azure_results, key=lambda r: r.time_to_first_token_ms if r.success and r.time_to_first_token_ms else float('inf'))
             for r in azure_sorted:
                 status = "✓" if r.success else "✗"
                 if r.success and r.time_to_first_token_ms:
-                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {r.time_to_first_token_ms:10.2f} {r.completion_time_ms:12.2f} {r.tokens_per_second:10.2f} {status:>8s}")
+                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {r.time_to_first_token_ms:10.2f} {r.completion_time_ms:12.2f} {status:>8s}")
                 else:
                     error_msg = f" ({r.error[:20]}...)" if r.error and len(r.error) > 20 else f" ({r.error})" if r.error else ""
-                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {'N/A':>10s} {'N/A':>12s} {'N/A':>10s} {status:>8s}{error_msg}")
+                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {'N/A':>10s} {'N/A':>12s} {status:>8s}{error_msg}")
         
         # Print fastest by different metrics
         successful = [r for r in results if r.success and r.time_to_first_token_ms]
@@ -354,17 +349,11 @@ class LLMLatencyPoller:
             fastest_total = min(successful, key=lambda r: r.latency_ms)
             print(f"\nFastest Total Completion: {fastest_total.deployment}")
             print(f"   Total: {fastest_total.latency_ms:.2f} ms")
-            
-            # Highest throughput
-            highest_throughput = max(successful, key=lambda r: r.tokens_per_second)
-            print(f"\nHighest Throughput: {highest_throughput.deployment}")
-            print(f"   Tokens/s: {highest_throughput.tokens_per_second:.2f}")
         
         # Calculate statistics
         if successful:
             latencies = [r.latency_ms for r in successful]
             ttfts = [r.time_to_first_token_ms for r in successful]
-            throughputs = [r.tokens_per_second for r in successful]
             
             print("\n" + "="*60)
             print("Statistics:")
@@ -373,9 +362,6 @@ class LLMLatencyPoller:
             print(f"    Min: {min(latencies):.2f}, Max: {max(latencies):.2f}, Avg: {sum(latencies)/len(latencies):.2f}")
             print(f"\n  Time to First Token (ms):")
             print(f"    Min: {min(ttfts):.2f}, Max: {max(ttfts):.2f}, Avg: {sum(ttfts)/len(ttfts):.2f}")
-            print(f"\n  Throughput (tokens/s):")
-            print(f"    Min: {min(throughputs):.2f}, Max: {max(throughputs):.2f}, Avg: {sum(throughputs)/len(throughputs):.2f}")
-            print(f"\n  Total Tokens Used: ~{sum(r.tokens_used for r in results)}")
     
     def emit_metrics_to_signoz(self, results: List[LatencyResult]):
         """Emit latency metrics to SignOz via OpenTelemetry"""
@@ -429,14 +415,6 @@ class LLMLatencyPoller:
                         description="LLM deployment completion time (after first token) in milliseconds",
                         attributes=attributes
                     )
-                    
-                    # Report throughput
-                    report_gauge(
-                        name="llm.deployment.throughput",
-                        value=result.tokens_per_second,
-                        description="LLM deployment throughput in tokens per second",
-                        attributes=attributes
-                    )
                 
                 # Also report as gauges for current values
                 report_gauge(
@@ -483,7 +461,6 @@ class LLMLatencyPoller:
         if successful_results:
             latencies = [r.latency_ms for r in successful_results]
             ttfts = [r.time_to_first_token_ms for r in successful_results if r.time_to_first_token_ms is not None]
-            throughputs = [r.tokens_per_second for r in successful_results if r.tokens_per_second is not None]
             
             # Total latency stats
             report_gauge(
@@ -530,15 +507,6 @@ class LLMLatencyPoller:
                     attributes={"measurement": "global"}
                 )
             
-            # Throughput stats
-            if throughputs:
-                report_gauge(
-                    name="llm.deployment.throughput.avg",
-                    value=sum(throughputs) / len(throughputs),
-                    description="Average throughput across all deployments",
-                    attributes={"measurement": "global"}
-                )
-            
             report_gauge(
                 name="llm.deployment.success_rate",
                 value=(len(successful_results) / len(results)) * 100,
@@ -562,10 +530,8 @@ class LLMLatencyPoller:
                 'latency_ms': r.latency_ms,
                 'time_to_first_token_ms': r.time_to_first_token_ms,
                 'completion_time_ms': r.completion_time_ms,
-                'tokens_per_second': r.tokens_per_second,
                 'success': r.success,
-                'error': r.error or '',
-                'tokens_used': r.tokens_used
+                'error': r.error or ''
             })
         
         df = pd.DataFrame(data)

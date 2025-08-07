@@ -395,7 +395,6 @@ class LatencyResult:
     tokens_used: int = 0
     time_to_first_token_ms: Optional[float] = None  # Time to first token (TTFT)
     completion_time_ms: Optional[float] = None  # Time from first to last token
-    tokens_per_second: Optional[float] = None  # Throughput metric
 
     
 
@@ -569,8 +568,7 @@ class LLMLatencyPoller:
                     error=str(result),
                     tokens_used=0,
                     time_to_first_token_ms=None,
-                    completion_time_ms=None,
-                    tokens_per_second=None
+                    completion_time_ms=None
                 ))
             else:
                 processed_results.append(result)
@@ -591,7 +589,6 @@ class LLMLatencyPoller:
         timestamp = datetime.now()
         start_time = None
         first_token_time = None
-        tokens_received = 0
         full_response = ""
         
         try:
@@ -618,22 +615,23 @@ class LLMLatencyPoller:
 
                 # Stream the response to measure TTFT
                 async for chunk in client.astream(messages):
-                    if first_token_time is None:
+                    # Check if chunk has actual content or tool calls
+                    has_content = hasattr(chunk, 'content') and chunk.content
+                    has_tool_calls = hasattr(chunk, 'tool_calls') and chunk.tool_calls
+                    
+                    # Set first token time only when we see actual payload
+                    if first_token_time is None and (has_content or has_tool_calls):
                         first_token_time = time.perf_counter()
                     
-                    # Count tokens and build response
-                    if hasattr(chunk, 'content') and chunk.content:
-                        tokens_received += 1
+                    # Build response
+                    if has_content:
                         full_response += chunk.content
-                    elif hasattr(chunk, 'tool_calls') and chunk.tool_calls:
-                        tokens_received += 1
             else:
                 # Non-streaming request (e.g., when running high concurrency)
                 start_time = time.perf_counter()
                 response = await client.invoke(messages)
                 # LangChain returns a ChatMessage; extract content if present
                 full_response = getattr(response, 'content', str(response))
-                tokens_received = len(full_response.split())
                 first_token_time = start_time
             
             # Calculate all timing metrics
@@ -643,20 +641,17 @@ class LLMLatencyPoller:
             if first_token_time:
                 ttft_ms = (first_token_time - start_time) * 1000
                 completion_time_ms = (end_time - first_token_time) * 1000
-                tokens_per_second = tokens_received / ((end_time - first_token_time) if end_time > first_token_time else 1)
             else:
                 # No tokens received
                 ttft_ms = total_latency_ms
                 completion_time_ms = 0
-                tokens_per_second = 0
             
-            # Estimate total tokens used for cost tracking
-            prompt_tokens = sum(
+            # Estimate total tokens used for cost tracking (prompt only)
+            tokens_used = sum(
                 len(getattr(m, "content", "").split())
                 for m in messages
                 if hasattr(m, "content")
             )
-            tokens_used = prompt_tokens + tokens_received
             
             return LatencyResult(
                 deployment=deployment_config.name,
@@ -666,8 +661,7 @@ class LLMLatencyPoller:
                 success=True,
                 tokens_used=tokens_used,
                 time_to_first_token_ms=ttft_ms,
-                completion_time_ms=completion_time_ms,
-                tokens_per_second=tokens_per_second
+                completion_time_ms=completion_time_ms
             )
             
         except Exception as e:
@@ -682,8 +676,7 @@ class LLMLatencyPoller:
                 success=False,
                 error=str(e),
                 time_to_first_token_ms=None,
-                completion_time_ms=None,
-                tokens_per_second=None
+                completion_time_ms=None
             )
     
     async def poll_all_deployments(self) -> List[LatencyResult]:
@@ -819,29 +812,29 @@ class LLMLatencyPoller:
         if openai_results:
             print("\nOpenAI Deployments:")
             print("-"*100)
-            print(f"{'Deployment':30s} {'Total':>10s} {'TTFT':>10s} {'Completion':>12s} {'Tokens/s':>10s} {'Status':>8s}")
+            print(f"{'Deployment':30s} {'Total':>10s} {'TTFT':>10s} {'Completion':>12s} {'Status':>8s}")
             print("-"*100)
             for r in openai_results:
                 status = "✓" if r.success else "✗"
                 if r.success and r.time_to_first_token_ms:
-                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {r.time_to_first_token_ms:10.2f} {r.completion_time_ms:12.2f} {r.tokens_per_second:10.2f} {status:>8s}")
+                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {r.time_to_first_token_ms:10.2f} {r.completion_time_ms:12.2f} {status:>8s}")
                 else:
-                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {'N/A':>10s} {'N/A':>12s} {'N/A':>10s} {status:>8s}")
+                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {'N/A':>10s} {'N/A':>12s} {status:>8s}")
         
         # Print Azure results (sorted by TTFT)
         if azure_results:
             print("\nAzure Deployments:")
             print("-"*100)
-            print(f"{'Deployment':30s} {'Total':>10s} {'TTFT':>10s} {'Completion':>12s} {'Tokens/s':>10s} {'Status':>8s}")
+            print(f"{'Deployment':30s} {'Total':>10s} {'TTFT':>10s} {'Completion':>12s} {'Status':>8s}")
             print("-"*100)
             azure_sorted = sorted(azure_results, key=lambda r: r.time_to_first_token_ms if r.success and r.time_to_first_token_ms else float('inf'))
             for r in azure_sorted:
                 status = "✓" if r.success else "✗"
                 if r.success and r.time_to_first_token_ms:
-                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {r.time_to_first_token_ms:10.2f} {r.completion_time_ms:12.2f} {r.tokens_per_second:10.2f} {status:>8s}")
+                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {r.time_to_first_token_ms:10.2f} {r.completion_time_ms:12.2f} {status:>8s}")
                 else:
                     error_msg = f" ({r.error[:20]}...)" if r.error and len(r.error) > 20 else f" ({r.error})" if r.error else ""
-                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {'N/A':>10s} {'N/A':>12s} {'N/A':>10s} {status:>8s}{error_msg}")
+                    print(f"{r.deployment:30s} {r.latency_ms:10.2f} {'N/A':>10s} {'N/A':>12s} {status:>8s}{error_msg}")
         
         # Print fastest by different metrics
         successful = [r for r in results if r.success and r.time_to_first_token_ms]
@@ -859,17 +852,11 @@ class LLMLatencyPoller:
             fastest_total = min(successful, key=lambda r: r.latency_ms)
             print(f"\nFastest Total Completion: {fastest_total.deployment}")
             print(f"   Total: {fastest_total.latency_ms:.2f} ms")
-            
-            # Highest throughput
-            highest_throughput = max(successful, key=lambda r: r.tokens_per_second)
-            print(f"\nHighest Throughput: {highest_throughput.deployment}")
-            print(f"   Tokens/s: {highest_throughput.tokens_per_second:.2f}")
         
         # Calculate statistics
         if successful:
             latencies = [r.latency_ms for r in successful]
             ttfts = [r.time_to_first_token_ms for r in successful]
-            throughputs = [r.tokens_per_second for r in successful]
             
             print("\n" + "="*60)
             print("Statistics:")
@@ -878,8 +865,6 @@ class LLMLatencyPoller:
             print(f"    Min: {min(latencies):.2f}, Max: {max(latencies):.2f}, Avg: {sum(latencies)/len(latencies):.2f}")
             print(f"\n  Time to First Token (ms):")
             print(f"    Min: {min(ttfts):.2f}, Max: {max(ttfts):.2f}, Avg: {sum(ttfts)/len(ttfts):.2f}")
-            print(f"\n  Throughput (tokens/s):")
-            print(f"    Min: {min(throughputs):.2f}, Max: {max(throughputs):.2f}, Avg: {sum(throughputs)/len(throughputs):.2f}")
             print(f"\n  Total Tokens Used: ~{sum(r.tokens_used for r in results)}")
     
     def print_parallel_results_summary(self, results_by_deployment: Dict[str, List[LatencyResult]]):
@@ -898,7 +883,6 @@ class LLMLatencyPoller:
             if successful_results:
                 latencies = [r.latency_ms for r in successful_results]
                 ttfts = [r.time_to_first_token_ms for r in successful_results if r.time_to_first_token_ms]
-                throughputs = [r.tokens_per_second for r in successful_results if r.tokens_per_second]
                 
                 avg_latency = sum(latencies) / len(latencies)
                 min_latency = min(latencies)
@@ -907,8 +891,6 @@ class LLMLatencyPoller:
                 avg_ttft = sum(ttfts) / len(ttfts) if ttfts else None
                 min_ttft = min(ttfts) if ttfts else None
                 max_ttft = max(ttfts) if ttfts else None
-                
-                avg_throughput = sum(throughputs) / len(throughputs) if throughputs else None
                 
                 success_rate = len(successful_results) / len(results) * 100
                 
@@ -922,7 +904,6 @@ class LLMLatencyPoller:
                     'avg_ttft': avg_ttft,
                     'min_ttft': min_ttft,
                     'max_ttft': max_ttft,
-                    'avg_throughput': avg_throughput,
                     'successful': len(successful_results),
                     'failed': len(failed_results),
                     'total': len(results)
@@ -938,7 +919,6 @@ class LLMLatencyPoller:
                     'avg_ttft': None,
                     'min_ttft': None,
                     'max_ttft': None,
-                    'avg_throughput': None,
                     'successful': 0,
                     'failed': len(results),
                     'total': len(results)
@@ -952,7 +932,7 @@ class LLMLatencyPoller:
         if openai_data:
             print("\nOpenAI Deployments:")
             print("-"*140)
-            print(f"{'Deployment':35s} {'Success':>8s} {'Avg Latency':>12s} {'Min/Max Lat':>20s} {'Avg TTFT':>10s} {'Min/Max TTFT':>20s} {'Avg Thr.':>10s}")
+            print(f"{'Deployment':35s} {'Success':>8s} {'Avg Latency':>12s} {'Min/Max Lat':>20s} {'Avg TTFT':>10s} {'Min/Max TTFT':>20s}")
             print("-"*140)
             for d in openai_data:
                 success_str = f"{d['successful']}/{d['total']}"
@@ -960,14 +940,13 @@ class LLMLatencyPoller:
                 minmax_lat_str = f"{d['min_latency']:.0f}-{d['max_latency']:.0f}" if d['min_latency'] else "N/A"
                 ttft_str = f"{d['avg_ttft']:.2f}" if d['avg_ttft'] else "N/A"
                 minmax_ttft_str = f"{d['min_ttft']:.0f}-{d['max_ttft']:.0f}" if d['min_ttft'] else "N/A"
-                throughput_str = f"{d['avg_throughput']:.2f}" if d['avg_throughput'] else "N/A"
-                print(f"{d['deployment']:35s} {success_str:>8s} {latency_str:>12s} {minmax_lat_str:>20s} {ttft_str:>10s} {minmax_ttft_str:>20s} {throughput_str:>10s}")
+                print(f"{d['deployment']:35s} {success_str:>8s} {latency_str:>12s} {minmax_lat_str:>20s} {ttft_str:>10s} {minmax_ttft_str:>20s}")
         
         # Print Azure results sorted by average latency
         if azure_data:
             print("\nAzure Deployments (sorted by avg latency):")
             print("-"*140)
-            print(f"{'Deployment':35s} {'Success':>8s} {'Avg Latency':>12s} {'Min/Max Lat':>20s} {'Avg TTFT':>10s} {'Min/Max TTFT':>20s} {'Avg Thr.':>10s}")
+            print(f"{'Deployment':35s} {'Success':>8s} {'Avg Latency':>12s} {'Min/Max Lat':>20s} {'Avg TTFT':>10s} {'Min/Max TTFT':>20s}")
             print("-"*140)
             azure_sorted = sorted(azure_data, key=lambda d: d['avg_latency'] if d['avg_latency'] else float('inf'))
             for d in azure_sorted:
@@ -976,11 +955,10 @@ class LLMLatencyPoller:
                 minmax_lat_str = f"{d['min_latency']:.0f}-{d['max_latency']:.0f}" if d['min_latency'] else "N/A"
                 ttft_str = f"{d['avg_ttft']:.2f}" if d['avg_ttft'] else "N/A"
                 minmax_ttft_str = f"{d['min_ttft']:.0f}-{d['max_ttft']:.0f}" if d['min_ttft'] else "N/A"
-                throughput_str = f"{d['avg_throughput']:.2f}" if d['avg_throughput'] else "N/A"
                 
                 # Shorten deployment name for better display
                 deployment_display = d['deployment'].replace('azure-https://', '').replace('.openai.azure.com/', '')
-                print(f"{deployment_display:35s} {success_str:>8s} {latency_str:>12s} {minmax_lat_str:>20s} {ttft_str:>10s} {minmax_ttft_str:>20s} {throughput_str:>10s}")
+                print(f"{deployment_display:35s} {success_str:>8s} {latency_str:>12s} {minmax_lat_str:>20s} {ttft_str:>10s} {minmax_ttft_str:>20s}")
         
         # Print top performers
         successful_deployments = [d for d in summary_data if d['avg_latency']]
@@ -1042,79 +1020,71 @@ class LLMLatencyPoller:
             }
             
             if result.success:
-                # Report total latency as a histogram (for percentiles)
+                # Report total latency as a histogram (for percentiles) - with .long suffix
                 report_metrics(
-                    name="llm.deployment.latency",
+                    name="llm.deployment.latency.long",
                     instrument_type="histogram",
                     value=result.latency_ms,
-                    description="LLM deployment total latency in milliseconds",
+                    description="LLM deployment total latency in milliseconds (long prompt with tools)",
                     attributes=attributes
                 )
                 
-                # Report TTFT if available
+                # Report TTFT if available - with .long suffix
                 if result.time_to_first_token_ms is not None:
                     report_metrics(
-                        name="llm.deployment.ttft",
+                        name="llm.deployment.ttft.long",
                         instrument_type="histogram",
                         value=result.time_to_first_token_ms,
-                        description="LLM deployment time to first token in milliseconds",
+                        description="LLM deployment time to first token in milliseconds (long prompt with tools)",
                         attributes=attributes
                     )
                     
-                    # Report completion time
+                    # Report completion time - with .long suffix
                     report_metrics(
-                        name="llm.deployment.completion_time",
+                        name="llm.deployment.completion_time.long",
                         instrument_type="histogram",
                         value=result.completion_time_ms,
-                        description="LLM deployment completion time (after first token) in milliseconds",
-                        attributes=attributes
-                    )
-                    
-                    # Report throughput
-                    report_gauge(
-                        name="llm.deployment.throughput",
-                        value=result.tokens_per_second,
-                        description="LLM deployment throughput in tokens per second",
+                        description="LLM deployment completion time (after first token) in milliseconds (long prompt with tools)",
                         attributes=attributes
                     )
                 
-                # Also report as gauges for current values
+                # Also report as gauges for current values - with .long suffix
                 report_gauge(
-                    name="llm.deployment.latency.current",
+                    name="llm.deployment.latency.long.current",
                     value=result.latency_ms,
-                    description="Current LLM deployment latency in milliseconds",
+                    description="Current LLM deployment latency in milliseconds (long prompt with tools)",
                     attributes=attributes
                 )
                 
                 if result.time_to_first_token_ms is not None:
                     report_gauge(
-                        name="llm.deployment.ttft.current",
+                        name="llm.deployment.ttft.long.current",
                         value=result.time_to_first_token_ms,
-                        description="Current LLM deployment TTFT in milliseconds",
+                        description="Current LLM deployment TTFT in milliseconds (long prompt with tools)",
                         attributes=attributes
                     )
                 
-                # Count successful calls
+                # Count successful calls - with .long suffix
                 inc_counter(
-                    name="llm.deployment.calls.success",
+                    name="llm.deployment.calls.long.success",
                     value=1,
-                    description="Number of successful LLM deployment calls",
+                    description="Number of successful LLM deployment calls (long prompt with tools)",
                     attributes=attributes
                 )
             else:
-                # Count failed calls
+                # Count failed calls - with .long suffix
                 inc_counter(
-                    name="llm.deployment.calls.failed",
+                    name="llm.deployment.calls.long.failed",
                     value=1,
-                    description="Number of failed LLM deployment calls",
+                    description="Number of failed LLM deployment calls (long prompt with tools)",
                     attributes={**attributes, "error": result.error or "unknown"}
                 )
                 
-                # Report failure as max latency for monitoring
+                # Report failure as max latency for monitoring - with .long suffix
                 report_gauge(
-                    name="llm.deployment.latency.current",
+                    name="llm.deployment.latency.long.current",
                     value=999999,  # High value to indicate failure
-                    description="Current LLM deployment latency in milliseconds",
+                    description="Current LLM deployment latency in milliseconds (long prompt with tools)",
                     attributes=attributes
                 )
         
@@ -1123,66 +1093,56 @@ class LLMLatencyPoller:
         if successful_results:
             latencies = [r.latency_ms for r in successful_results]
             ttfts = [r.time_to_first_token_ms for r in successful_results if r.time_to_first_token_ms is not None]
-            throughputs = [r.tokens_per_second for r in successful_results if r.tokens_per_second is not None]
             
-            # Total latency stats
+            # Total latency stats - with .long suffix
             report_gauge(
-                name="llm.deployment.latency.min",
+                name="llm.deployment.latency.long.min",
                 value=min(latencies),
-                description="Minimum latency across all deployments",
+                description="Minimum latency across all deployments (long prompt with tools)",
                 attributes={"measurement": "global"}
             )
             
             report_gauge(
-                name="llm.deployment.latency.max",
+                name="llm.deployment.latency.long.max",
                 value=max(latencies),
-                description="Maximum latency across all deployments",
+                description="Maximum latency across all deployments (long prompt with tools)",
                 attributes={"measurement": "global"}
             )
             
             report_gauge(
-                name="llm.deployment.latency.avg",
+                name="llm.deployment.latency.long.avg",
                 value=sum(latencies) / len(latencies),
-                description="Average latency across all deployments",
+                description="Average latency across all deployments (long prompt with tools)",
                 attributes={"measurement": "global"}
             )
             
-            # TTFT stats
+            # TTFT stats - with .long suffix
             if ttfts:
                 report_gauge(
-                    name="llm.deployment.ttft.min",
+                    name="llm.deployment.ttft.long.min",
                     value=min(ttfts),
-                    description="Minimum TTFT across all deployments",
+                    description="Minimum TTFT across all deployments (long prompt with tools)",
                     attributes={"measurement": "global"}
                 )
                 
                 report_gauge(
-                    name="llm.deployment.ttft.max",
+                    name="llm.deployment.ttft.long.max",
                     value=max(ttfts),
-                    description="Maximum TTFT across all deployments",
+                    description="Maximum TTFT across all deployments (long prompt with tools)",
                     attributes={"measurement": "global"}
                 )
                 
                 report_gauge(
-                    name="llm.deployment.ttft.avg",
+                    name="llm.deployment.ttft.long.avg",
                     value=sum(ttfts) / len(ttfts),
-                    description="Average TTFT across all deployments",
-                    attributes={"measurement": "global"}
-                )
-            
-            # Throughput stats
-            if throughputs:
-                report_gauge(
-                    name="llm.deployment.throughput.avg",
-                    value=sum(throughputs) / len(throughputs),
-                    description="Average throughput across all deployments",
+                    description="Average TTFT across all deployments (long prompt with tools)",
                     attributes={"measurement": "global"}
                 )
             
             report_gauge(
-                name="llm.deployment.success_rate",
+                name="llm.deployment.success_rate.long",
                 value=(len(successful_results) / len(results)) * 100,
-                description="Success rate percentage",
+                description="Success rate percentage (long prompt with tools)",
                 attributes={"measurement": "global"}
             )
     
@@ -1202,7 +1162,6 @@ class LLMLatencyPoller:
                 'latency_ms': r.latency_ms,
                 'time_to_first_token_ms': r.time_to_first_token_ms,
                 'completion_time_ms': r.completion_time_ms,
-                'tokens_per_second': r.tokens_per_second,
                 'success': r.success,
                 'error': r.error or '',
                 'tokens_used': r.tokens_used
@@ -1381,7 +1340,7 @@ async def main():
     # Check if we're running as a cron job or continuous mode
     run_mode = os.getenv("RUN_MODE", "single")  # "single" for cron, "continuous" for testing
     use_parallel = os.getenv("USE_PARALLEL", "true").lower() == "true"  # Default to parallel mode
-    num_requests = int(os.getenv("NUM_REQUESTS_PER_DEPLOYMENT", "5"))  # Number of parallel requests
+    num_requests = int(os.getenv("NUM_REQUESTS_PER_DEPLOYMENT", "1"))  # Number of parallel requests
     
     if run_mode == "continuous":
         # Run continuously (for testing)
