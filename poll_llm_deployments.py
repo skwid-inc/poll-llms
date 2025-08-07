@@ -87,7 +87,8 @@ class LLMLatencyPoller:
                  test_prompt: str = "Hi",
                  max_tokens: int = 1,
                  timeout: float = 10.0,
-                 streaming: bool = True):
+                 streaming: bool = True,
+                 max_concurrent_tests: int = 1):
         """
         Initialize the poller with API keys and configuration
         
@@ -99,6 +100,7 @@ class LLMLatencyPoller:
             max_tokens: Max tokens for response (default: 1 for minimal cost)
             timeout: Timeout for each request in seconds
             streaming: If True enable streaming to measure TTFT
+            max_concurrent_tests: Maximum number of concurrent deployment tests (default: 3)
         """
         self.openai_api_key = openai_api_key
         self.model_name = model_name
@@ -108,6 +110,7 @@ class LLMLatencyPoller:
         self.timeout = timeout
         self.streaming = streaming
         self.results_history: List[LatencyResult] = []
+        self.semaphore = asyncio.Semaphore(max_concurrent_tests)
         
         # Load Azure endpoints on initialization
         self._load_azure_endpoints()
@@ -149,92 +152,93 @@ class LLMLatencyPoller:
         Returns:
             LatencyResult with timing information including TTFT
         """
-        timestamp = datetime.now()
-        start_time = None
-        first_token_time = None
-        tokens_received = 0
-        full_response = ""
-        
-        try:
-            if deployment_config.provider == 'openai':
-                client = self._create_openai_client()
-            else:  # azure
-                client = self._create_azure_client(deployment_config.endpoint)
+        async with self.semaphore:  # Limit concurrent tests
+            timestamp = datetime.now()
+            start_time = None
+            first_token_time = None
+            tokens_received = 0
+            full_response = ""
             
-            # Create a simple message
-            message = HumanMessage(content=self.test_prompt)
-            
-            if self.streaming:
-                # Begin timing just before sending the request
-                start_time = time.perf_counter()
+            try:
+                if deployment_config.provider == 'openai':
+                    client = self._create_openai_client()
+                else:  # azure
+                    client = self._create_azure_client(deployment_config.endpoint)
                 
-                # Stream the response to measure TTFT
-                async for chunk in client.astream([message]):
-                    if first_token_time is None:
-                        first_token_time = time.perf_counter()
+                # Create a simple message
+                message = HumanMessage(content=self.test_prompt)
+                
+                if self.streaming:
+                    # Begin timing just before sending the request
+                    start_time = time.perf_counter()
                     
-                    # Count tokens and build response
-                    if hasattr(chunk, 'content') and chunk.content:
-                        tokens_received += 1
-                        full_response += chunk.content
-            else:
-                # Non-streaming request
-                start_time = time.perf_counter()
-                response = await asyncio.get_event_loop().run_in_executor(
-                    None, 
-                    client.invoke,
-                    [message]
+                    # Stream the response to measure TTFT
+                    async for chunk in client.astream([message]):
+                        if first_token_time is None:
+                            first_token_time = time.perf_counter()
+                        
+                        # Count tokens and build response
+                        if hasattr(chunk, 'content') and chunk.content:
+                            tokens_received += 1
+                            full_response += chunk.content
+                else:
+                    # Non-streaming request
+                    start_time = time.perf_counter()
+                    response = await asyncio.get_event_loop().run_in_executor(
+                        None, 
+                        client.invoke,
+                        [message]
+                    )
+                    # Extract content if present
+                    full_response = getattr(response, 'content', str(response))
+                    tokens_received = len(full_response.split())
+                    first_token_time = start_time
+                
+                # Calculate all timing metrics
+                end_time = time.perf_counter()
+                total_latency_ms = (end_time - start_time) * 1000
+                
+                if first_token_time:
+                    ttft_ms = (first_token_time - start_time) * 1000
+                    completion_time_ms = (end_time - first_token_time) * 1000
+                    tokens_per_second = tokens_received / ((end_time - first_token_time) if end_time > first_token_time else 1)
+                else:
+                    # No tokens received
+                    ttft_ms = total_latency_ms
+                    completion_time_ms = 0
+                    tokens_per_second = 0
+                
+                # Estimate total tokens used for cost tracking
+                prompt_tokens = len(self.test_prompt.split())
+                tokens_used = prompt_tokens + tokens_received
+                
+                return LatencyResult(
+                    deployment=deployment_config.name,
+                    provider=deployment_config.provider,
+                    latency_ms=total_latency_ms,
+                    timestamp=timestamp,
+                    success=True,
+                    tokens_used=tokens_used,
+                    time_to_first_token_ms=ttft_ms,
+                    completion_time_ms=completion_time_ms,
+                    tokens_per_second=tokens_per_second
                 )
-                # Extract content if present
-                full_response = getattr(response, 'content', str(response))
-                tokens_received = len(full_response.split())
-                first_token_time = start_time
-            
-            # Calculate all timing metrics
-            end_time = time.perf_counter()
-            total_latency_ms = (end_time - start_time) * 1000
-            
-            if first_token_time:
-                ttft_ms = (first_token_time - start_time) * 1000
-                completion_time_ms = (end_time - first_token_time) * 1000
-                tokens_per_second = tokens_received / ((end_time - first_token_time) if end_time > first_token_time else 1)
-            else:
-                # No tokens received
-                ttft_ms = total_latency_ms
-                completion_time_ms = 0
-                tokens_per_second = 0
-            
-            # Estimate total tokens used for cost tracking
-            prompt_tokens = len(self.test_prompt.split())
-            tokens_used = prompt_tokens + tokens_received
-            
-            return LatencyResult(
-                deployment=deployment_config.name,
-                provider=deployment_config.provider,
-                latency_ms=total_latency_ms,
-                timestamp=timestamp,
-                success=True,
-                tokens_used=tokens_used,
-                time_to_first_token_ms=ttft_ms,
-                completion_time_ms=completion_time_ms,
-                tokens_per_second=tokens_per_second
-            )
-            
-        except Exception as e:
-            latency_ms = (time.perf_counter() - start_time) * 1000 if start_time else 0
-            logger.warning(f"Error testing {deployment_config.name}: {str(e)}")
-            
-            return LatencyResult(
-                deployment=deployment_config.name,
-                provider=deployment_config.provider,
-                latency_ms=latency_ms,
-                timestamp=timestamp,
-                success=False,
-                error=str(e),
-                time_to_first_token_ms=None,
-                completion_time_ms=None,
-                tokens_per_second=None
-            )
+                
+            except Exception as e:
+                latency_ms = (time.perf_counter() - start_time) * 1000 if start_time else 0
+                logger.warning(f"Error testing {deployment_config.name}: {str(e)}")
+                
+                return LatencyResult(
+                    deployment=deployment_config.name,
+                    provider=deployment_config.provider,
+                    latency_ms=latency_ms,
+                    timestamp=timestamp,
+                    success=False,
+                    error=str(e),
+                    time_to_first_token_ms=None,
+                    completion_time_ms=None,
+                    tokens_per_second=None
+                )
     
     async def poll_all_deployments(self) -> List[LatencyResult]:
         """
@@ -263,8 +267,9 @@ class LLMLatencyPoller:
                 )
             )
         
-        # Test all deployments concurrently
-        logger.info(f"Testing {len(deployments)} deployments...")
+        # Test all deployments concurrently with semaphore limiting concurrency
+        # This prevents bandwidth-induced queueing delays that would affect all tasks equally
+        logger.info(f"Testing {len(deployments)} deployments with max concurrency of {self.semaphore._value}...")
         tasks = [self._test_deployment(config) for config in deployments]
         results = await asyncio.gather(*tasks)
         
@@ -695,13 +700,19 @@ async def main():
     # Get API keys from environment or your secret manager
     openai_api_key = access_secret("openai-api-key-scale")
     
+    # Get max concurrent tests from environment or use default
+    max_concurrent_tests = int(os.getenv("MAX_CONCURRENT_TESTS", "1"))
+    logger.info(f"Using max concurrent tests: {max_concurrent_tests}")
+    
     # Create poller instance
+    # Using max_concurrent_tests to limit bandwidth usage and get more accurate absolute timing
     poller = LLMLatencyPoller(
         openai_api_key=openai_api_key,
         model_name="gpt-4o",
         test_prompt="Hi",  # Minimal prompt to reduce cost
         max_tokens=1,  # Single token response
-        timeout=10.0
+        timeout=10.0,
+        max_concurrent_tests=max_concurrent_tests  # Limit concurrency to avoid bandwidth-induced queueing delays
     )
     
     # Check if we're running as a cron job or continuous mode
