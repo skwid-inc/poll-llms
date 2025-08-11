@@ -28,6 +28,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Optional import for direct OpenAI SDK
+try:
+    from openai import AsyncOpenAI
+except Exception as e:
+    AsyncOpenAI = None  # type: ignore
+    logger.warning(f"OpenAI SDK not available: {e}")
+
 FAT_PROMPT = """
 ### **Tools**
 - authenticate_customer: Used to verify customer identity with appropriate parameters:
@@ -364,6 +371,34 @@ def get_auth_tools():
         set_hold_timeout,
     ]
 
+def convert_langchain_tools_to_openai(tools):
+    """Convert LangChain tools to OpenAI SDK format."""
+    openai_tools = []
+    for tool in tools:
+        # Extract the schema from the tool
+        if hasattr(tool, 'args_schema'):
+            schema = tool.args_schema.schema()
+            properties = schema.get('properties', {})
+            required = schema.get('required', [])
+        else:
+            properties = {}
+            required = []
+        
+        openai_tool = {
+            "type": "function",
+            "function": {
+                "name": tool.name,
+                "description": tool.description or "",
+                "parameters": {
+                    "type": "object",
+                    "properties": properties,
+                    "required": required
+                }
+            }
+        }
+        openai_tools.append(openai_tool)
+    return openai_tools
+
 def create_chat_prompt_template(system_prompt: str, user_prompt: Optional[str] = None) -> ChatPromptTemplate:
     """Create a chat prompt template for authentication."""
     if user_prompt:
@@ -382,6 +417,8 @@ class DeploymentConfig:
     endpoint: Optional[str] = None
     deployment_name: Optional[str] = None
     api_version: Optional[str] = None
+    model: Optional[str] = None  # Model to use (e.g., 'gpt-4o', 'gpt-4o-mini')
+    use_direct_sdk: bool = False  # Use direct SDK instead of LangChain
     
 @dataclass
 class LatencyResult:
@@ -395,6 +432,7 @@ class LatencyResult:
     tokens_used: int = 0
     time_to_first_token_ms: Optional[float] = None  # Time to first token (TTFT)
     completion_time_ms: Optional[float] = None  # Time from first to last token
+    model: Optional[str] = None  # Model used (e.g., 'gpt-4o', 'gpt-4o-mini')
 
     
 
@@ -402,7 +440,7 @@ class LLMLatencyPoller:
     """Polls multiple LLM deployments to find the fastest one"""
     
     # Azure endpoints to test - loaded from environment variables
-    azure_endpoints = {}
+    azure_endpoints = {}  # Will store: {endpoint: {'api_key': key, 'model': model, 'region': region}}
     
     # Load Azure endpoints and API keys from environment variables
     @classmethod
@@ -412,21 +450,30 @@ class LLMLatencyPoller:
             return
             
         endpoint_configs = [
-            ('VF', os.getenv('AZURE_OPENAI_ENDPOINT_VF'), os.getenv('AZURE_OPENAI_API_KEY_VF') or access_secret("azure-openai-api-key")),
-            ('WESTUS', os.getenv('AZURE_OPENAI_ENDPOINT_WESTUS'), os.getenv('AZURE_OPENAI_API_KEY_WESTUS')),
-            ('EASTUS2', os.getenv('AZURE_OPENAI_ENDPOINT_EASTUS2'), os.getenv('AZURE_OPENAI_API_KEY_EASTUS2')),
-            ('EASTUS', os.getenv('AZURE_OPENAI_ENDPOINT_EASTUS'), os.getenv('AZURE_OPENAI_API_KEY_EASTUS')),
-            ('AUSTRALIAEAST', os.getenv('AZURE_OPENAI_ENDPOINT_AUSTRALIAEAST'), os.getenv('AZURE_OPENAI_API_KEY_AUSTRALIAEAST')),
-            ('BRAZILSOUTH', os.getenv('AZURE_OPENAI_ENDPOINT_BRAZILSOUTH'), os.getenv('AZURE_OPENAI_API_KEY_BRAZILSOUTH')),
-            ('CANADAEAST', os.getenv('AZURE_OPENAI_ENDPOINT_CANADAEAST'), os.getenv('AZURE_OPENAI_API_KEY_CANADAEAST')),
-            ('SOUTHCENTRALUS', os.getenv('AZURE_OPENAI_ENDPOINT_SOUTHCENTRALUS'), os.getenv('AZURE_OPENAI_API_KEY_SOUTHCENTRALUS')),
-            ('NORTHCENTRALUS', os.getenv('AZURE_OPENAI_ENDPOINT_NORTHCENTRALUS'), os.getenv('AZURE_OPENAI_API_KEY_NORTHCENTRALUS')),
-            ('WESTUS3', os.getenv('AZURE_OPENAI_ENDPOINT_WESTUS3'), os.getenv('AZURE_OPENAI_API_KEY_WESTUS3')),
+            ('VF', 'gpt-4o', os.getenv('AZURE_OPENAI_ENDPOINT_VF'), os.getenv('AZURE_OPENAI_API_KEY_VF') or access_secret("azure-openai-api-key")),
+            ('WESTUS', 'gpt-4o', os.getenv('AZURE_OPENAI_ENDPOINT_WESTUS'), os.getenv('AZURE_OPENAI_API_KEY_WESTUS')),
+            ('EASTUS2', 'gpt-4o', os.getenv('AZURE_OPENAI_ENDPOINT_EASTUS2'), os.getenv('AZURE_OPENAI_API_KEY_EASTUS2')),
+            ('EASTUS2-mini', 'gpt-4o-mini', os.getenv('AZURE_OPENAI_ENDPOINT_EASTUS2_MINI'), os.getenv('AZURE_OPENAI_API_KEY_EASTUS2')),
+            ('EASTUS', 'gpt-4o', os.getenv('AZURE_OPENAI_ENDPOINT_EASTUS'), os.getenv('AZURE_OPENAI_API_KEY_EASTUS')),
+            ('AUSTRALIAEAST', 'gpt-4o', os.getenv('AZURE_OPENAI_ENDPOINT_AUSTRALIAEAST'), os.getenv('AZURE_OPENAI_API_KEY_AUSTRALIAEAST')),
+            ('AUSTRALIAEAST-mini', 'gpt-4o-mini', os.getenv('AZURE_OPENAI_ENDPOINT_AUSTRALIAEAST_MINI'), os.getenv('AZURE_OPENAI_API_KEY_AUSTRALIAEAST')),
+            # ('BRAZILSOUTH', os.getenv('AZURE_OPENAI_ENDPOINT_BRAZILSOUTH'), os.getenv('AZURE_OPENAI_API_KEY_BRAZILSOUTH')),
+            ('CANADAEAST', 'gpt-4o', os.getenv('AZURE_OPENAI_ENDPOINT_CANADAEAST'), os.getenv('AZURE_OPENAI_API_KEY_CANADAEAST')),
+            ('CANADAEAST-mini', 'gpt-4o-mini', os.getenv('AZURE_OPENAI_ENDPOINT_CANADAEAST_MINI'), os.getenv('AZURE_OPENAI_API_KEY_CANADAEAST')),
+            ('SOUTHCENTRALUS', 'gpt-4o', os.getenv('AZURE_OPENAI_ENDPOINT_SOUTHCENTRALUS'), os.getenv('AZURE_OPENAI_API_KEY_SOUTHCENTRALUS')),
+            ('SOUTHCENTRALUS-mini', 'gpt-4o-mini', os.getenv('AZURE_OPENAI_ENDPOINT_SOUTHCENTRALUS_MINI'), os.getenv('AZURE_OPENAI_API_KEY_SOUTHCENTRALUS')),
+            ('NORTHCENTRALUS', 'gpt-4o', os.getenv('AZURE_OPENAI_ENDPOINT_NORTHCENTRALUS'), os.getenv('AZURE_OPENAI_API_KEY_NORTHCENTRALUS')),
+            ('WESTUS3', 'gpt-4o', os.getenv('AZURE_OPENAI_ENDPOINT_WESTUS3'), os.getenv('AZURE_OPENAI_API_KEY_WESTUS3')),
+            ('WESTUS3-mini', 'gpt-4o-mini', os.getenv('AZURE_OPENAI_ENDPOINT_WESTUS3_MINI'), os.getenv('AZURE_OPENAI_API_KEY_WESTUS3')),
         ]
         
-        for region, endpoint, api_key in endpoint_configs:
+        for region, model, endpoint, api_key in endpoint_configs:
             if endpoint and api_key:
-                cls.azure_endpoints[endpoint] = api_key
+                cls.azure_endpoints[endpoint] = {
+                    'api_key': api_key,
+                    'model': model,
+                    'region': region
+                }
             else:
                 logger.warning(f"Missing Azure OpenAI configuration for {region}")
     
@@ -468,15 +515,24 @@ class LLMLatencyPoller:
         self.reuse_clients = reuse_clients
         self._openai_client: Optional[ChatOpenAI] = None
         self._azure_clients: Dict[str, AzureChatOpenAI] = {}
+        self._openai_sdk_client: Optional[Any] = None  # Direct SDK client
         
         # Load Azure endpoints on initialization
         self._load_azure_endpoints()
         
-    def _create_openai_client(self) -> ChatOpenAI:
+        # Initialize direct SDK client if available
+        if AsyncOpenAI is not None:
+            self._openai_sdk_client = AsyncOpenAI(
+                api_key=self.openai_api_key,
+                timeout=self.timeout,
+                max_retries=0  # No retries for accurate timing
+            )
+        
+    def _create_openai_client(self, model: Optional[str] = None) -> ChatOpenAI:
         """Create OpenAI client"""
         client = ChatOpenAI(
             api_key=self.openai_api_key,
-            model=self.model_name,
+            model=model or self.model_name,
             temperature=0,
             max_tokens=self.max_tokens,
             timeout=self.timeout,
@@ -490,13 +546,18 @@ class LLMLatencyPoller:
         
         return client
         
-    def _create_azure_client(self, endpoint: str) -> AzureChatOpenAI:
+    def _create_azure_client(self, endpoint: str, model: Optional[str] = None) -> AzureChatOpenAI:
         """Create Azure OpenAI client for a specific endpoint"""
+        # Use the model from config if provided, otherwise use the model from endpoint config
+        endpoint_config = self.azure_endpoints.get(endpoint, {})
+        deployment_model = model or endpoint_config.get('model', self.model_name)
+        api_key = endpoint_config.get('api_key') if isinstance(endpoint_config, dict) else endpoint_config
+        
         client = AzureChatOpenAI(
             azure_endpoint=endpoint,
-            azure_deployment=self.model_name,
+            azure_deployment=deployment_model,
             api_version=self.azure_api_version,
-            api_key=self.azure_endpoints[endpoint],
+            api_key=api_key,
             temperature=0,
             max_tokens=self.max_tokens,
             timeout=self.timeout,
@@ -513,20 +574,24 @@ class LLMLatencyPoller:
     # ------------------------------------------------------------------
     # Cached client helpers to avoid repeated TLS handshakes
     # ------------------------------------------------------------------
-    def _get_openai_client(self) -> ChatOpenAI:
+    def _get_openai_client(self, model: Optional[str] = None) -> ChatOpenAI:
         """Return a cached OpenAI client (or create one)."""
+        # For OpenAI, we create new clients for different models
+        if model and model != self.model_name:
+            return self._create_openai_client(model)
+        
         if self.reuse_clients and self._openai_client is not None:
             return self._openai_client
-        client = self._create_openai_client()
+        client = self._create_openai_client(model)
         if self.reuse_clients:
             self._openai_client = client
         return client
 
-    def _get_azure_client(self, endpoint: str) -> AzureChatOpenAI:
+    def _get_azure_client(self, endpoint: str, model: Optional[str] = None) -> AzureChatOpenAI:
         """Return a cached Azure client for the given endpoint (or create one)."""
         if self.reuse_clients and endpoint in self._azure_clients:
             return self._azure_clients[endpoint]
-        client = self._create_azure_client(endpoint)
+        client = self._create_azure_client(endpoint, model)
         if self.reuse_clients:
             self._azure_clients[endpoint] = client
         return client
@@ -568,7 +633,8 @@ class LLMLatencyPoller:
                     error=str(result),
                     tokens_used=0,
                     time_to_first_token_ms=None,
-                    completion_time_ms=None
+                    completion_time_ms=None,
+                    model=config.model
                 ))
             else:
                 processed_results.append(result)
@@ -592,47 +658,100 @@ class LLMLatencyPoller:
         full_response = ""
         
         try:
-            if deployment_config.provider == 'openai':
-                client = self._get_openai_client()
-            else:  # azure
-                client = self._get_azure_client(deployment_config.endpoint)
-            
-            # Create messages using the FAT_PROMPT as system message
-            # Split the FAT_PROMPT to get system and user parts
-            system_prompt = "You are Taylor, a virtual assistant for Chase Bank. You are verifying the identity of the customer on the phone."
-            
-            # Create the prompt template like production
-            prompt_template = create_chat_prompt_template(system_prompt, str(uuid.uuid4()) + str(uuid.uuid4()) +  str(uuid.uuid4()) + self.test_prompt)
-            
-            # Format messages with the prompt template (system + FAT prompt)
-            messages = prompt_template.format_messages(
-                messages=[HumanMessage(content="Hi, who is this?")]
-            )
-            
-            if self.streaming:
-                # Begin timing just before sending the request
-                start_time = time.perf_counter()
-
-                # Stream the response to measure TTFT
-                async for chunk in client.astream(messages):
-                    # Check if chunk has actual content or tool calls
-                    has_content = hasattr(chunk, 'content') and chunk.content
-                    has_tool_calls = hasattr(chunk, 'tool_calls') and chunk.tool_calls
+            if deployment_config.provider == 'openai' and deployment_config.use_direct_sdk and self._openai_sdk_client:
+                # Use direct OpenAI SDK
+                system_prompt = "You are Taylor, a virtual assistant for Chase Bank. You are verifying the identity of the customer on the phone."
+                full_prompt = system_prompt + "\n" + str(uuid.uuid4()) + str(uuid.uuid4()) + str(uuid.uuid4()) + self.test_prompt
+                
+                messages = [
+                    {"role": "system", "content": full_prompt},
+                    {"role": "user", "content": "Hi, who is this?"}
+                ]
+                
+                if self.streaming:
+                    # Begin timing just before sending the request
+                    start_time = time.perf_counter()
                     
-                    # Set first token time only when we see actual payload
-                    if first_token_time is None and (has_content or has_tool_calls):
-                        first_token_time = time.perf_counter()
+                    # Stream the response using direct SDK
+                    stream = await self._openai_sdk_client.chat.completions.create(
+                        model=deployment_config.model or self.model_name,
+                        messages=messages,
+                        temperature=0,
+                        max_tokens=self.max_tokens,
+                        stream=True,
+                        tools=convert_langchain_tools_to_openai(get_auth_tools()) if self.use_tools else None,
+                        parallel_tool_calls=False if self.use_tools else None
+                    )
                     
-                    # Build response
-                    if has_content:
-                        full_response += chunk.content
+                    async for chunk in stream:
+                        if chunk.choices and chunk.choices[0].delta:
+                            delta = chunk.choices[0].delta
+                            has_content = delta.content is not None
+                            has_tool_calls = hasattr(delta, 'tool_calls') and delta.tool_calls
+                            
+                            if first_token_time is None and (has_content or has_tool_calls):
+                                first_token_time = time.perf_counter()
+                            
+                            if has_content:
+                                full_response += delta.content
+                else:
+                    # Non-streaming SDK request
+                    start_time = time.perf_counter()
+                    response = await self._openai_sdk_client.chat.completions.create(
+                        model=deployment_config.model or self.model_name,
+                        messages=messages,
+                        temperature=0,
+                        max_tokens=self.max_tokens,
+                        stream=False,
+                        tools=convert_langchain_tools_to_openai(get_auth_tools()) if self.use_tools else None,
+                        parallel_tool_calls=False if self.use_tools else None
+                    )
+                    full_response = response.choices[0].message.content or ""
+                    first_token_time = start_time
+            
             else:
-                # Non-streaming request (e.g., when running high concurrency)
-                start_time = time.perf_counter()
-                response = await client.invoke(messages)
-                # LangChain returns a ChatMessage; extract content if present
-                full_response = getattr(response, 'content', str(response))
-                first_token_time = start_time
+                # Use LangChain clients
+                if deployment_config.provider == 'openai':
+                    client = self._get_openai_client(model=deployment_config.model)
+                else:  # azure
+                    client = self._get_azure_client(deployment_config.endpoint, model=deployment_config.model)
+                
+                # Create messages using the FAT_PROMPT as system message
+                # Split the FAT_PROMPT to get system and user parts
+                system_prompt = "You are Taylor, a virtual assistant for Chase Bank. You are verifying the identity of the customer on the phone."
+                
+                # Create the prompt template like production
+                prompt_template = create_chat_prompt_template(system_prompt, str(uuid.uuid4()) + str(uuid.uuid4()) +  str(uuid.uuid4()) + self.test_prompt)
+                
+                # Format messages with the prompt template (system + FAT prompt)
+                messages = prompt_template.format_messages(
+                    messages=[HumanMessage(content="Hi, who is this?")]
+                )
+                
+                if self.streaming:
+                    # Begin timing just before sending the request
+                    start_time = time.perf_counter()
+
+                    # Stream the response to measure TTFT
+                    async for chunk in client.astream(messages):
+                        # Check if chunk has actual content or tool calls
+                        has_content = hasattr(chunk, 'content') and chunk.content
+                        has_tool_calls = hasattr(chunk, 'tool_calls') and chunk.tool_calls
+                        
+                        # Set first token time only when we see actual payload
+                        if first_token_time is None and (has_content or has_tool_calls):
+                            first_token_time = time.perf_counter()
+                        
+                        # Build response
+                        if has_content:
+                            full_response += chunk.content
+                else:
+                    # Non-streaming request (e.g., when running high concurrency)
+                    start_time = time.perf_counter()
+                    response = await client.invoke(messages)
+                    # LangChain returns a ChatMessage; extract content if present
+                    full_response = getattr(response, 'content', str(response))
+                    first_token_time = start_time
             
             # Calculate all timing metrics
             end_time = time.perf_counter()
@@ -661,7 +780,8 @@ class LLMLatencyPoller:
                 success=True,
                 tokens_used=tokens_used,
                 time_to_first_token_ms=ttft_ms,
-                completion_time_ms=completion_time_ms
+                completion_time_ms=completion_time_ms,
+                model=deployment_config.model
             )
             
         except Exception as e:
@@ -676,7 +796,8 @@ class LLMLatencyPoller:
                 success=False,
                 error=str(e),
                 time_to_first_token_ms=None,
-                completion_time_ms=None
+                completion_time_ms=None,
+                model=deployment_config.model
             )
     
     async def poll_all_deployments(self) -> List[LatencyResult]:
@@ -688,21 +809,54 @@ class LLMLatencyPoller:
         """
         deployments = []
         
-        # Add OpenAI deployment
+        # Add OpenAI deployments - one for gpt-4o and one for gpt-4o-mini
+        # LangChain versions
         deployments.append(
             DeploymentConfig(
-                name="openai-main",
-                provider="openai"
+                name="openai-langchain-gpt-4o",
+                provider="openai",
+                model="gpt-4o",
+                use_direct_sdk=False
+            )
+        )
+        deployments.append(
+            DeploymentConfig(
+                name="openai-langchain-gpt-4o-mini",
+                provider="openai",
+                model="gpt-4o-mini",
+                use_direct_sdk=False
             )
         )
         
-        # Add Azure deployments for each region
-        for endpoint in self.azure_endpoints.keys():
+        # Direct SDK versions (if available)
+        if self._openai_sdk_client:
             deployments.append(
                 DeploymentConfig(
-                    name=f"azure-{endpoint}",
+                    name="openai-sdk-gpt-4o",
+                    provider="openai",
+                    model="gpt-4o",
+                    use_direct_sdk=True
+                )
+            )
+            deployments.append(
+                DeploymentConfig(
+                    name="openai-sdk-gpt-4o-mini",
+                    provider="openai",
+                    model="gpt-4o-mini",
+                    use_direct_sdk=True
+                )
+            )
+        
+        # Add Azure deployments for each region with their configured models
+        for endpoint, config in self.azure_endpoints.items():
+            region = config.get('region', 'unknown')
+            model = config.get('model', self.model_name)
+            deployments.append(
+                DeploymentConfig(
+                    name=f"azure-{region}-{model}",
                     provider="azure",
                     endpoint=endpoint,
+                    model=model
                 )
             )
         
@@ -728,21 +882,54 @@ class LLMLatencyPoller:
         """
         deployments = []
         
-        # Add OpenAI deployment
+        # Add OpenAI deployments - one for gpt-4o and one for gpt-4o-mini
+        # LangChain versions
         deployments.append(
             DeploymentConfig(
-                name="openai-main",
-                provider="openai"
+                name="openai-langchain-gpt-4o",
+                provider="openai",
+                model="gpt-4o",
+                use_direct_sdk=False
+            )
+        )
+        deployments.append(
+            DeploymentConfig(
+                name="openai-langchain-gpt-4o-mini",
+                provider="openai",
+                model="gpt-4o-mini",
+                use_direct_sdk=False
             )
         )
         
-        # Add Azure deployments for each region
-        for endpoint in self.azure_endpoints.keys():
+        # Direct SDK versions (if available)
+        if self._openai_sdk_client:
             deployments.append(
                 DeploymentConfig(
-                    name=f"azure-{endpoint}",
+                    name="openai-sdk-gpt-4o",
+                    provider="openai",
+                    model="gpt-4o",
+                    use_direct_sdk=True
+                )
+            )
+            deployments.append(
+                DeploymentConfig(
+                    name="openai-sdk-gpt-4o-mini",
+                    provider="openai",
+                    model="gpt-4o-mini",
+                    use_direct_sdk=True
+                )
+            )
+        
+        # Add Azure deployments for each region with their configured models
+        for endpoint, config in self.azure_endpoints.items():
+            region = config.get('region', 'unknown')
+            model = config.get('model', self.model_name)
+            deployments.append(
+                DeploymentConfig(
+                    name=f"azure-{region}-{model}",
                     provider="azure",
                     endpoint=endpoint,
+                    model=model
                 )
             )
         
@@ -998,25 +1185,32 @@ class LLMLatencyPoller:
     def emit_metrics_to_signoz(self, results: List[LatencyResult]):
         """Emit latency metrics to SignOz via OpenTelemetry"""
         for result in results:
-            # Extract region from deployment name (e.g., "azure-https://salient-azure-westus.openai.azure.com/" -> "westus")
+            # Extract region from deployment name
             region = "unknown"
-            if "azure" in result.deployment:
-                if "westus" in result.deployment:
-                    region = "westus"
-                elif "eastus2" in result.deployment:
-                    region = "eastus2"
-                elif "eastus" in result.deployment and "eastus2" not in result.deployment:
-                    region = "eastus"
-                elif "switzerlandwest" in result.deployment:
-                    region = "switzerlandwest"
-            elif "openai" in result.deployment:
+            if result.provider == "azure":
+                # Parse region from deployment name like "azure-WESTUS-gpt-4o"
+                parts = result.deployment.split('-')
+                if len(parts) >= 2:
+                    region = parts[1].lower()
+            elif result.provider == "openai":
                 region = "openai-main"
+            
+            # Detect SDK type
+            sdk_type = "unknown"
+            if "sdk" in result.deployment:
+                sdk_type = "direct_sdk"
+            elif "langchain" in result.deployment:
+                sdk_type = "langchain"
+            elif result.provider == "azure":
+                sdk_type = "langchain"  # Azure always uses LangChain
             
             attributes = {
                 "deployment": result.deployment,
                 "provider": result.provider,
                 "region": region,
-                "success": str(result.success).lower()
+                "success": str(result.success).lower(),
+                "model": result.model or "unknown",
+                "sdk_type": sdk_type
             }
             
             if result.success:
@@ -1159,6 +1353,7 @@ class LLMLatencyPoller:
                 'timestamp': r.timestamp,
                 'deployment': r.deployment,
                 'provider': r.provider,
+                'model': r.model or '',
                 'latency_ms': r.latency_ms,
                 'time_to_first_token_ms': r.time_to_first_token_ms,
                 'completion_time_ms': r.completion_time_ms,
