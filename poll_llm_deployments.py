@@ -992,27 +992,27 @@ async def main():
     # Check if we're running as a cron job or continuous mode
     run_mode = os.getenv("RUN_MODE", "single")  # "single" for cron, "continuous" for testing
     
-    if run_mode == "continuous":
+    # if run_mode == "continuous":
         # Run continuously (for testing)
-        await poller.continuous_polling(
-            interval_seconds=600,  # 10 minutes
-            duration_minutes=None  # Run indefinitely
-        )
-    else:
-        # Run once and exit (for cron job)
-        logger.info("Running single latency test across all deployments...")
+    await poller.continuous_polling(
+        interval_seconds=5,  # 10 minutes
+        duration_minutes=None  # Run indefinitely
+    )
+    # else:
+    #     # Run once and exit (for cron job)
+    #     logger.info("Running single latency test across all deployments...")
         
-        # Poll all deployments
-        results = await poller.poll_all_deployments()
+    #     # Poll all deployments
+    #     results = await poller.poll_all_deployments()
         
-        # Emit metrics to SignOz
-        poller.emit_metrics_to_signoz(results)
+    #     # Emit metrics to SignOz
+    #     poller.emit_metrics_to_signoz(results)
         
-        # Print summary for logs
-        poller.print_results_summary(results)
+    #     # Print summary for logs
+    #     poller.print_results_summary(results)
         
-        # Log completion
-        logger.info("Latency test completed and metrics emitted to SignOz")
+    #     # Log completion
+    #     logger.info("Latency test completed and metrics emitted to SignOz")
 
 
 if __name__ == "__main__":
